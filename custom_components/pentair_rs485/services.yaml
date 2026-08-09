@@ -1,0 +1,59 @@
+run_program:
+  name: Run program
+  description: Run an external pump program (0 = stop, 1-4 = program).
+  fields:
+    pump_index:
+      name: Pump index
+      description: Pump index configured in the integration (1-16).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+    program:
+      name: Program
+      description: Program number (0 = stop).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 0
+          max: 4
+          mode: box
+
+save_program:
+  name: Save program speed
+  description: Save a RPM or GPM speed into a pump program slot (1-4).
+  fields:
+    pump_index:
+      name: Pump index
+      description: Pump index configured in the integration (1-16).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+    program:
+      name: Program
+      description: Program slot to save (1-4).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 4
+          mode: box
+    speed:
+      name: Speed
+      description: Speed value (RPM 450-3450 or GPM 15-130 depending on command profile).
+      required: true
+      example: 1500
+      selector:
+        number:
+          min: 15
+          max: 3450
+          mode: box

@@ -1,0 +1,30 @@
+"""Constants for the Pentair RS485 pump integration."""
+
+DOMAIN = "pentair_rs485"
+
+CONF_APP_ADDRESS = "app_address"
+CONF_PUMPS = "pumps"
+CONF_PUMP_INDEX = "pump_index"
+CONF_PUMP_TYPE = "pump_type"
+CONF_PUMP_NAME = "pump_name"
+
+DEFAULT_APP_ADDRESS = 33
+DEFAULT_BAUD_RATE = 9600
+DEFAULT_SCAN_INTERVAL = 30
+
+DEFAULT_WATCHDOG_ENABLED = True
+DEFAULT_WATCHDOG_TOLERANCE = 100
+DEFAULT_WATCHDOG_RECOVERY_DELAY = 15
+
+PUMP_TYPES = ("VS", "VF", "VSF")
+
+ATTR_PUMP_INDEX = "pump_index"
+ATTR_PROGRAM = "program"
+
+SERVICE_RUN_PROGRAM = "run_program"
+SERVICE_SAVE_PROGRAM = "save_program"
+
+MIN_RPM = 450
+MAX_RPM = 3450
+MIN_GPM = 15
+MAX_GPM = 130

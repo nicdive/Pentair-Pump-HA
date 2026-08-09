@@ -1,0 +1,85 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pentair RS485",
+        "description": "Step 1: enter your USB/serial adapter path. Step 2: keep 33 for the integration's address on the Pentair bus (this is not the serial port).",
+        "data": {
+          "port": "Serial adapter port (e.g. /dev/ttyUSB0)",
+          "app_address": "Integration address on Pentair bus (appAddress, keep 33)"
+        }
+      },
+      "pump": {
+        "title": "Add pump",
+        "description": "Define each pump connected on the RS485 bus.",
+        "data": {
+          "pump_index": "Pump index (1-16, maps to address 96-111)",
+          "pump_type": "Pump type (informational)",
+          "pump_name": "Friendly name",
+          "add_another": "Add another pump"
+        }
+      }
+    },
+    "error": {
+      "pump_exists": "A pump with this index is already configured."
+    },
+    "abort": {
+      "already_configured": "This port is already configured."
+    }
+  },
+  "entity": {
+    "switch": {
+      "power": { "name": "Power" },
+      "display_active": { "name": "Display active" }
+    },
+    "number": {
+      "rpm": { "name": "Speed (RPM)" },
+      "gpm": { "name": "Flow (GPM)" },
+      "program_1_speed": { "name": "Program 1 speed" },
+      "program_2_speed": { "name": "Program 2 speed" },
+      "program_3_speed": { "name": "Program 3 speed" },
+      "program_4_speed": { "name": "Program 4 speed" }
+    },
+    "sensor": {
+      "watts": { "name": "Power draw" },
+      "rpm_reading": { "name": "Current RPM" },
+      "gpm_reading": { "name": "Current GPM" },
+      "mode": {
+        "name": "Operating mode",
+        "state": {
+          "filter": "Filter",
+          "manual_flow": "Manual flow",
+          "manual_rpm": "Manual RPM",
+          "speed_2": "Speed 2",
+          "speed_3": "Speed 3",
+          "speed_4": "Speed 4",
+          "feature_1": "Feature 1",
+          "ext_program_1": "Program 1",
+          "ext_program_2": "Program 2",
+          "ext_program_3": "Program 3",
+          "ext_program_4": "Program 4"
+        }
+      },
+      "drive_state": { "name": "Drive state" },
+      "ppc": { "name": "Filter usage" },
+      "timer": { "name": "Program timer" },
+      "clock": { "name": "Pump clock" },
+      "error": { "name": "Error" }
+    },
+    "button": {
+      "manual_flow": { "name": "Manual flow" },
+      "manual_rpm": { "name": "Manual RPM" },
+      "filter_mode": { "name": "Filter mode" },
+      "release_remote": { "name": "Release to pump panel" },
+      "run_program_1": { "name": "Run program 1" },
+      "run_program_2": { "name": "Run program 2" },
+      "run_program_3": { "name": "Run program 3" },
+      "run_program_4": { "name": "Run program 4" },
+      "stop_program": { "name": "Stop program" },
+      "save_program_1": { "name": "Save reading to program 1" },
+      "save_program_2": { "name": "Save reading to program 2" },
+      "save_program_3": { "name": "Save reading to program 3" },
+      "save_program_4": { "name": "Save reading to program 4" }
+    }
+  }
+}
