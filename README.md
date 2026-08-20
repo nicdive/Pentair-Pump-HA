@@ -1,44 +1,410 @@
-# Pentair Pump HA
+# Pentair RS485 — Home Assistant
 
-Home Assistant custom integration for standalone **Pentair IntelliFlo** pump control over **RS485**.
+Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-## Current version
+**Version actuelle : v0.6.4**
 
-**v0.6.4**
+---
 
-## Install
+## Table des matières
 
-1. Copy `custom_components/pentair_rs485` into `/config/custom_components/`
-2. Or unzip a release from `releases/pentair_rs485_vX.Y.Z.zip` into `custom_components/`
-3. Restart Home Assistant
-4. Add integration **Pentair RS485**
+- [Prérequis](#prérequis)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Entités](#entités)
+- [Utilisation](#utilisation)
+- [Boost volet](#boost-volet)
+- [Contrôle panneau](#contrôle-panneau)
+- [Comportement au redémarrage](#comportement-au-redémarrage)
+- [Automations utiles](#automations-utiles)
+- [Services](#services)
+- [Dépannage](#dépannage)
+- [Limites connues](#limites-connues)
 
-## Releases
+---
+
+## Prérequis
+
+### Matériel
+
+| Élément | Détail |
+|--------|--------|
+| Pompe | IntelliFlo **VS**, **VF** ou **VSF** (bus RS485 natif) |
+| Adaptateur | USB ↔ RS485 (ex. FTDI, CH340, …) câblé en **A/B** sur le bus pompe |
+| Câblage | Bus partagé possible pour **plusieurs pompes** (adresses 96–111) |
+| Host | Home Assistant avec accès au port série (`/dev/ttyUSB0`, `/dev/serial/by-id/…`) |
+
+### Logiciel
+
+| Élément | Détail |
+|--------|--------|
+| Home Assistant | **2024.2.0** ou plus récent |
+| Python deps | `pyserial>=3.5` (installé automatiquement par HA via le `manifest`) |
+| Droits | L’utilisateur HA doit pouvoir ouvrir le port série (groupe `dialout` / Docker device mapping) |
+
+### Adresses bus (rappel)
+
+| Index config | Adresse RS485 |
+|--------------|---------------|
+| 1 | 96 |
+| 2 | 97 |
+| … | … |
+| 16 | 111 |
+
+L’adresse **app** de l’intégration (par défaut **33**) est celle de Home Assistant sur le bus Pentair — **ce n’est pas** le chemin du port USB.
+
+---
+
+## Installation
+
+### Option A — depuis une release ZIP (recommandé)
+
+1. Téléchargez `releases/pentair_rs485_v0.6.4.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+2. Sur le host HA :
+
+```bash
+cd /config
+rm -rf custom_components/pentair_rs485
+unzip -o /chemin/vers/pentair_rs485_v0.6.4.zip -d custom_components/
+```
+
+3. Redémarrez Home Assistant.
+4. **Paramètres → Appareils et services → Ajouter une intégration → Pentair RS485**.
+
+### Option B — copie manuelle
+
+```bash
+cp -r custom_components/pentair_rs485 /config/custom_components/
+```
+
+Puis redémarrage HA et ajout de l’intégration.
+
+### Option C — HACS (manuel)
+
+Ajoutez le dépôt GitHub en **intégration custom**, installez, redémarrez, puis ajoutez l’intégration.
+
+### Build local d’un zip
 
 ```bash
 ./build_release.sh
 ```
 
-## Features
+Génère `releases/pentair_rs485_vX.Y.Z.zip` et met à jour `pentair_rs485_ha.zip`.
 
-- IntelliFlo **VS**, **VF**, **VSF**
-- Multiple pumps on one adapter (indexes → addresses 96–111)
-- Mode select, programs 1–4, RPM/GPM, cover-open boost
-- Sensors: watts, RPM, GPM, mode, drive, filter %, timer, clock, error
-- Binary sensors: RS485 online, cover boost active
-- **Panel control** switch: ON = physical pump buttons (persisted); OFF = HA remote
-- Reconfigure: port / pumps (integration → ⋮ → Reconfigure)
-- Options: pool cover sensor for boost
+---
 
-## Resilience
+## Configuration
 
-- **`desired_run`**: if you stop the pump in HA before a restart, it will **not** auto-start after reboot
-- If it was running (`desired_run=true`), setpoint is resumed after HA start
-- Watchdog restores mode + RPM/GPM after a pump power blip
-- USB RS485 reconnect on I/O failure
-- Cover `unavailable` ignored; boost snapshot restored across HA restart
-- **Panel control** switch persists across reboot; while ON, HA commands / watchdog / cover boost are idle
+### Première installation
 
-## Schedules / temperature curves
+1. **Port série** — ex. `/dev/ttyUSB0` ou, mieux, un chemin stable :
 
-Use Home Assistant automations (not written into the pump).
+   ```text
+   /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXX-if00-port0
+   ```
+
+2. **Adresse bus (appAddress)** — laisser **33** sauf conflit connu sur le bus.
+3. **Pompe(s)** — pour chaque pompe :
+   - **Index** (1–16) → adresse 96–111
+   - **Type** : `VS` (RPM), `VF` (GPM), `VSF` (RPM **et** GPM)
+   - **Nom** libre (ex. « Pompe piscine »)
+   - Cocher **Ajouter une autre pompe** si besoin
+
+### Options (boost volet)
+
+**Paramètres → Intégrations → Pentair RS485 → Configurer**
+
+| Champ | Description |
+|-------|-------------|
+| Capteur volet / shutter | `cover.*`, `binary_sensor.*` ou `input_boolean.*` |
+| Inverser | Si `on` = volet **fermé** chez vous |
+
+Laisser vide pour désactiver complètement le boost.
+
+### Reconfigurer port / pompes
+
+**Intégration → ⋮ → Reconfigurer** : changer le port, l’adresse bus, puis redéfinir la liste des pompes.
+
+---
+
+## Entités
+
+Chaque pompe expose un appareil Home Assistant avec les entités suivantes.
+
+### Interrupteurs
+
+| Entité | Rôle |
+|--------|------|
+| **Marche** | Marche / arrêt. Attribut `desired_run` = intention persistée |
+| **Afficheur actif** | Mode « display active » (LCD pompe) entre les commandes HA |
+| **Contrôle panneau** | ON = boutons physiques ; OFF = contrôle HA (voir ci-dessous) |
+| **Boost volet ouvert** | Active le boost automatique quand le volet est ouvert |
+
+### Nombres (consignes)
+
+| Entité | Plage |
+|--------|-------|
+| **Vitesse (RPM)** | 450 – 3450 |
+| **Débit (GPM)** | 15 – 130 |
+| **Consigne boost volet** | Selon l’unité choisie |
+| **Vitesse programme 1–4** | Consigne mémorisée pour chaque programme |
+
+### Selects
+
+| Entité | Options |
+|--------|---------|
+| **Profil de commande** | `RPM` ou `GPM` (surtout utile sur **VSF**) |
+| **Mode de fonctionnement** | Filtre, manuel débit/RPM, speeds, feature, programmes 1–4 |
+| **Unité boost volet** | RPM ou GPM |
+
+### Boutons
+
+| Bouton | Action |
+|--------|--------|
+| Manuel débit / Manuel RPM / Filtre | Envoie le mode correspondant |
+| Lancer programme 1–4 / Stop programme | Démarre ou arrête un programme |
+| Sauver lecture → programme 1–4 | Enregistre la vitesse lue dans le slot |
+
+### Capteurs
+
+| Capteur | Description |
+|---------|-------------|
+| Puissance (W) | Consommation |
+| RPM / GPM actuel | Mesure live |
+| Mode de fonctionnement | Mode rapporté par la pompe |
+| État drive | Drive state |
+| Usure filtre (PPC) | % filtre |
+| Timer programme | Timer interne |
+| Horloge pompe | Heure pompe |
+| Erreur | Code / libellé d’erreur |
+
+### Capteurs binaires
+
+| Capteur | Description |
+|---------|-------------|
+| **RS485 online** | Bus joignable |
+| **Boost volet actif** | Un boost est en cours sur cette pompe |
+
+---
+
+## Utilisation
+
+### Démarrer / arrêter
+
+1. Réglez **RPM** ou **GPM** (selon le profil).
+2. Activez **Marche**, ou lancez un **programme**.
+3. Pour arrêter : **Marche** OFF, ou bouton **Stop programme**.
+
+L’attribut `desired_run` du switch **Marche** indique si HA **souhaite** que la pompe tourne après un redémarrage :
+
+- Arrêt volontaire → `desired_run=false` → **pas** de redémarrage auto
+- Pompe laissée en marche → `desired_run=true` → reprise de la consigne au boot
+
+### Choisir RPM ou GPM (VSF)
+
+1. Select **Profil de commande** → `RPM` ou `GPM`
+2. Utilisez le nombre **Vitesse** ou **Débit** correspondant
+3. Ou passez par le select **Mode de fonctionnement** / les boutons Manuel
+
+### Programmes 1–4
+
+1. Réglez la **vitesse programme N** (ou sauvez la lecture courante)
+2. Bouton **Lancer programme N**
+3. **Stop programme** pour arrêter
+
+Les plages horaires « classiques » (filtre le matin, etc.) se font avec des **automations Home Assistant**, pas en écrivant l’horloge interne de la pompe.
+
+### Afficheur actif
+
+- **ON** : après chaque commande HA, la pompe revient en contrôle local d’afficheur (comportement type IntelliComm)
+- **OFF** : HA garde le contrôle distant entre les polls
+
+Indépendant du switch **Contrôle panneau** (qui, lui, bloque complètement HA).
+
+---
+
+## Boost volet
+
+Quand le capteur configuré passe à **ouvert** :
+
+1. Si le switch **Boost volet ouvert** est ON pour la pompe
+2. Et que **Contrôle panneau** est OFF
+3. → la pompe passe à la **consigne boost**
+4. À la fermeture → restauration de la consigne précédente (snapshot)
+
+Cas particuliers gérés :
+
+- États `unavailable` / `unknown` **ignorés** (pas de faux « fermé »)
+- Snapshot conservé après redémarrage HA si le boost était actif
+- Si **Contrôle panneau** est ON : boost **reporté** ; réévalué dès le retour au contrôle HA
+
+---
+
+## Contrôle panneau
+
+| État | Comportement |
+|------|----------------|
+| **ON** | Boutons physiques de la pompe. HA n’envoie plus de commandes ; watchdog et boost volet en veille. Persiste après reboot HA. |
+| **OFF** | Retour contrôle HA. Si `desired_run=true`, la consigne est renvoyée. Le boost volet est réévalué. |
+
+Utile pour laisser quelqu’un utiliser la pompe « à la main » sans que HA écrase les réglages.
+
+---
+
+## Comportement au redémarrage
+
+Ordre au démarrage de l’intégration :
+
+1. Restore des entités (`desired_run`, panneau, consignes, snapshot boost)
+2. Premier poll RS485
+3. Sync volet + reprise des pompes avec `desired_run=true`
+
+| Situation | Résultat |
+|-----------|----------|
+| HA redémarre, pompe arrêtée volontairement | Reste arrêtée |
+| HA redémarre, pompe était en marche | Reprise RPM/GPM |
+| Contrôle panneau était ON | Réaffirme le contrôle local, pas de resume HA |
+| Coupure électrique **pompe** (HA toujours up) | Watchdog restaure mode + consigne si `desired_run` |
+| Débranchement USB RS485 | Tentative de reconnexion automatique |
+
+---
+
+## Automations utiles
+
+### Vitesse selon température d’eau
+
+```yaml
+alias: Pompe — courbe température
+trigger:
+  - platform: state
+    entity_id: sensor.temperature_eau
+action:
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.temperature_eau
+            below: 18
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.pompe_piscine_vitesse_rpm
+            data:
+              value: 1200
+      - conditions:
+          - condition: numeric_state
+            entity_id: sensor.temperature_eau
+            above: 26
+        sequence:
+          - service: number.set_value
+            target:
+              entity_id: number.pompe_piscine_vitesse_rpm
+            data:
+              value: 2200
+    default:
+      - service: number.set_value
+        target:
+          entity_id: number.pompe_piscine_vitesse_rpm
+        data:
+          value: 1600
+```
+
+Adaptez les `entity_id` à votre installation (noms dérivés du friendly name + entry).
+
+### Filtrage matin / soir
+
+```yaml
+alias: Pompe — marche 8h–20h
+trigger:
+  - platform: time
+    at: "08:00:00"
+  - platform: time
+    at: "20:00:00"
+action:
+  - choose:
+      - conditions:
+          - condition: time
+            after: "08:00:00"
+            before: "20:00:00"
+        sequence:
+          - service: switch.turn_on
+            target:
+              entity_id: switch.pompe_piscine_marche
+    default:
+      - service: switch.turn_off
+        target:
+          entity_id: switch.pompe_piscine_marche
+```
+
+### Ne pas commander si panneau actif
+
+```yaml
+condition:
+  - condition: state
+    entity_id: switch.pompe_piscine_controle_panneau_boutons_pompe
+    state: "off"
+```
+
+---
+
+## Services
+
+Domaine : `pentair_rs485`
+
+### `pentair_rs485.run_program`
+
+| Champ | Description |
+|-------|-------------|
+| `pump_index` | Index config (1–16) |
+| `program` | `0` = stop, `1`–`4` = programme |
+
+### `pentair_rs485.save_program`
+
+| Champ | Description |
+|-------|-------------|
+| `pump_index` | Index config |
+| `program` | Slot 1–4 |
+| `speed` | RPM ou GPM selon le profil de commande |
+
+---
+
+## Dépannage
+
+| Symptôme | Pistes |
+|----------|--------|
+| Intégration ne démarre pas | Port incorrect ; droits série ; autre process sur le port |
+| Capteur **RS485 online** OFF | Câblage A/B, masse, adresse index, alimentation pompe |
+| Commandes sans effet | Vérifier que **Contrôle panneau** est OFF |
+| Pompe redémarre seule après reboot HA | Vérifier l’attribut `desired_run` du switch Marche |
+| Boost qui ne se déclenche pas | Options → capteur volet ; switch boost ON ; panneau OFF ; états `open`/`on` |
+| Doublons d’entités après upgrade | Anciens `unique_id` : supprimer les entités orphelines dans HA |
+| USB qui disparaît | Reconnexion auto ; préférer `/dev/serial/by-id/…` |
+
+Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
+
+---
+
+## Limites connues
+
+- Les **plannings horaires** et **courbes saison / température** ne sont pas stockés dans la pompe : utilisez les automations HA.
+- En **Contrôle panneau ON**, le statut RS485 n’est plus pollé (affichage figé sur la dernière valeur connue) — voulu pour ne pas voler le bus.
+- Changement de schéma `unique_id` (v0.6.2) : possibles entités orphelines à nettoyer une fois.
+- Pas de support IntelliCenter / EasyTouch en maître concurrent sur le même bus (intégration conçue en **standalone**).
+
+---
+
+## Compatibilité pompes
+
+| Type | RPM | GPM | Notes |
+|------|-----|-----|-------|
+| **VS** | Oui | — | Profil RPM par défaut |
+| **VF** | — | Oui | Profil GPM par défaut |
+| **VSF** | Oui | Oui | Basculable via **Profil de commande** |
+
+---
+
+## Licence & crédits
+
+Protocole inspiré des travaux communautaires Pentair RS485 (ex. nodejs-poolController).  
+Intégration Home Assistant : dépôt **Pentair-Pump-HA**.
+
+Questions / bugs : ouvrez une issue sur le dépôt GitHub.
