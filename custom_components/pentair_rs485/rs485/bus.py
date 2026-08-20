@@ -35,6 +35,19 @@ class RS485Bus:
         self._lock = asyncio.Lock()
         self._read_buffer = bytearray()
         self._status_callbacks: list[Callable[[PumpStatus], None]] = []
+        self._last_error: str | None = None
+
+    @property
+    def port(self) -> str:
+        return self._port
+
+    @property
+    def is_open(self) -> bool:
+        return bool(self._serial and self._serial.is_open)
+
+    @property
+    def last_error(self) -> str | None:
+        return self._last_error
 
     def add_status_listener(self, callback: Callable[[PumpStatus], None]) -> None:
         self._status_callbacks.append(callback)
@@ -45,19 +58,61 @@ class RS485Bus:
     async def async_close(self) -> None:
         await self._run(self._close)
 
+    async def async_reconnect(self) -> None:
+        """Close and reopen the serial port (USB unplug/replug)."""
+        _LOGGER.warning("Reconnecting RS485 port %s", self._port)
+        await self._run(self._close)
+        await asyncio.sleep(0.5)
+        await self._run(self._open)
+
+    async def async_ensure_open(self) -> None:
+        if self.is_open:
+            return
+        await self.async_open()
+
     async def async_send(self, packet: bytes) -> None:
         async with self._lock:
-            await self._run(self._write, packet)
+            await self._write_with_retry(packet)
             await asyncio.sleep(COMMAND_GAP)
 
     async def async_send_sequence(self, packets: list[bytes]) -> list[PumpStatus]:
         """Send a command sequence and collect status responses."""
         async with self._lock:
-            await self._run(self._reset_input_buffer)
-            for packet in packets:
-                await self._run(self._write, packet)
-                await asyncio.sleep(COMMAND_GAP)
-            return await self._collect_status(timeout=RESPONSE_TIMEOUT)
+            try:
+                await self._run(self._reset_input_buffer)
+                for packet in packets:
+                    await self._write_with_retry(packet)
+                    await asyncio.sleep(COMMAND_GAP)
+                return await self._collect_status(timeout=RESPONSE_TIMEOUT)
+            except OSError as err:
+                self._last_error = str(err)
+                _LOGGER.error("RS485 sequence failed on %s: %s — retrying once", self._port, err)
+                try:
+                    await self._run(self._close)
+                    await asyncio.sleep(0.5)
+                    await self._run(self._open)
+                    await self._run(self._reset_input_buffer)
+                    for packet in packets:
+                        await self._run(self._write, packet)
+                        await asyncio.sleep(COMMAND_GAP)
+                    result = await self._collect_status(timeout=RESPONSE_TIMEOUT)
+                    self._last_error = None
+                    return result
+                except OSError as err2:
+                    self._last_error = str(err2)
+                    raise
+
+    async def _write_with_retry(self, packet: bytes) -> None:
+        try:
+            await self.async_ensure_open()
+            await self._run(self._write, packet)
+            self._last_error = None
+        except OSError:
+            await self._run(self._close)
+            await asyncio.sleep(0.3)
+            await self._run(self._open)
+            await self._run(self._write, packet)
+            self._last_error = None
 
     async def async_poll_status(self) -> list[PumpStatus]:
         """Read any pending data from the bus."""
@@ -77,6 +132,7 @@ class RS485Bus:
             timeout=0.2,
             write_timeout=2,
         )
+        self._last_error = None
         _LOGGER.info("Opened RS485 port %s @ %s baud", self._port, self._baud_rate)
 
     def _close(self) -> None:
@@ -92,14 +148,22 @@ class RS485Bus:
     def _write(self, packet: bytes) -> None:
         if not self._serial or not self._serial.is_open:
             raise OSError("RS485 port is not open")
-        self._serial.write(packet)
-        self._serial.flush()
+        try:
+            self._serial.write(packet)
+            self._serial.flush()
+        except (OSError, serial.SerialException) as err:
+            raise OSError(str(err)) from err
         _LOGGER.debug("TX %s", packet.hex(" "))
 
     def _read_available(self) -> None:
         if not self._serial or not self._serial.is_open:
             return
-        data = self._serial.read(512)
+        try:
+            data = self._serial.read(512)
+        except (OSError, serial.SerialException) as err:
+            _LOGGER.warning("RS485 read error on %s: %s", self._port, err)
+            self._last_error = str(err)
+            return
         if data:
             self._read_buffer.extend(data)
             _LOGGER.debug("RX %s", data.hex(" "))

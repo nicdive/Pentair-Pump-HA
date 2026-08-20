@@ -48,8 +48,8 @@ def test_seed_runtime_from_status_after_ha_restart():
         app_address=33,
         pumps=[PumpConfig(index=1, name="Pool", pump_type=PumpType.VSF)],
     )
+    hub.set_should_run(1, True)  # restored desired_run
     hub._status[1] = _status()
-    assert hub.should_run(1) is False
     assert hub.get_target_mode(1) is None
     hub.seed_runtime_from_status(1)
     assert hub.should_run(1) is True

@@ -18,13 +18,22 @@
           "pump_name": "Friendly name",
           "add_another": "Add another pump"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Pentair RS485",
+        "description": "Change serial port / bus address, then re-add pumps.",
+        "data": {
+          "port": "Serial port",
+          "app_address": "Bus address (appAddress)"
+        }
       }
     },
     "error": {
       "pump_exists": "A pump with this index is already configured."
     },
     "abort": {
-      "already_configured": "This port is already configured."
+      "already_configured": "This port is already configured.",
+      "reconfigure_successful": "Reconfigured successfully"
     }
   },
   "entity": {
@@ -175,6 +184,14 @@
           "rpm": "RPM (speed)",
           "gpm": "GPM (flow)"
         }
+      }
+    },
+    "binary_sensor": {
+      "bus_online": {
+        "name": "RS485 online"
+      },
+      "cover_boost_active": {
+        "name": "Cover boost active"
       }
     }
   },

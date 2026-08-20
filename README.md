@@ -4,7 +4,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Current version
 
-**v0.6.1**
+**v0.6.2**
 
 ## Install
 
@@ -15,27 +15,28 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Releases
 
-Versioned zips are in [`releases/`](releases/).
-
 ```bash
 ./build_release.sh
 ```
 
 ## Features
 
-- IntelliFlo **VS**, **VF**, **VSF** (VSF: RPM or GPM via command profile)
-- Multiple pumps on one USB RS485 adapter (indexes → addresses 96–111)
-- Mode select, program buttons 1–4, RPM/GPM setpoints
-- Sensors: watts, RPM, GPM, mode, drive state, **filter % (PPC)**, program timer, clock, error
-- **Cover boost**: configure a cover/binary_sensor in *Configure* → enable *Cover boost* switch → set boost speed (RPM/GPM). Opens cover → boost; closes → restore previous speed
+- IntelliFlo **VS**, **VF**, **VSF**
+- Multiple pumps on one adapter (indexes → addresses 96–111)
+- Mode select, programs 1–4, RPM/GPM, cover-open boost
+- Sensors: watts, RPM, GPM, mode, drive, filter %, timer, clock, error
+- Binary sensors: RS485 online, cover boost active
+- Reconfigure: port / pumps (integration → ⋮ → Reconfigure)
+- Options: pool cover sensor for boost
 
-## Resilience (power / HA restart)
+## Resilience
 
-- **Watchdog**: if HA still considers the pump should run, restores mode **and** last RPM/GPM after a pump power blip
-- **HA restart**: learns live RPM/mode from the pump so watchdog keeps working; cover-boost switch/consigne/snapshot are restored; boost re-applies if the cover is still open
-- Cover sensor `unavailable`/`unknown` is ignored (does not fake a close)
-- Hourly schedules remain HA-side (Automations / Schedule)
+- **`desired_run`**: if you stop the pump in HA before a restart, it will **not** auto-start after reboot
+- If it was running (`desired_run=true`), setpoint is resumed after HA start
+- Watchdog restores mode + RPM/GPM after a pump power blip
+- USB RS485 reconnect on I/O failure
+- Cover `unavailable` ignored; boost snapshot restored across HA restart
 
-## Notes
+## Schedules / temperature curves
 
-- Field-tested on IntelliFlo VF WhisperFlo; VSF uses the same RS485 command set
+Use Home Assistant automations (not written into the pump).

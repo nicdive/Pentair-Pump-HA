@@ -18,13 +18,22 @@
           "pump_name": "Friendly name",
           "add_another": "Add another pump"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Pentair RS485",
+        "description": "Change serial port / bus address, then re-add pumps.",
+        "data": {
+          "port": "Serial port",
+          "app_address": "Bus address (appAddress)"
+        }
       }
     },
     "error": {
       "pump_exists": "A pump with this index is already configured."
     },
     "abort": {
-      "already_configured": "This port is already configured."
+      "already_configured": "This port is already configured.",
+      "reconfigure_successful": "Reconfigured successfully"
     }
   },
   "options": {
@@ -41,23 +50,49 @@
   },
   "entity": {
     "switch": {
-      "power": { "name": "Power" },
-      "display_active": { "name": "Display active" },
-      "cover_boost": { "name": "Cover boost" }
+      "power": {
+        "name": "Power"
+      },
+      "display_active": {
+        "name": "Display active"
+      },
+      "cover_boost": {
+        "name": "Cover boost"
+      }
     },
     "number": {
-      "rpm": { "name": "Speed (RPM)" },
-      "gpm": { "name": "Flow (GPM)" },
-      "cover_boost_speed": { "name": "Cover boost speed" },
-      "program_1_speed": { "name": "Program 1 speed" },
-      "program_2_speed": { "name": "Program 2 speed" },
-      "program_3_speed": { "name": "Program 3 speed" },
-      "program_4_speed": { "name": "Program 4 speed" }
+      "rpm": {
+        "name": "Speed (RPM)"
+      },
+      "gpm": {
+        "name": "Flow (GPM)"
+      },
+      "cover_boost_speed": {
+        "name": "Cover boost speed"
+      },
+      "program_1_speed": {
+        "name": "Program 1 speed"
+      },
+      "program_2_speed": {
+        "name": "Program 2 speed"
+      },
+      "program_3_speed": {
+        "name": "Program 3 speed"
+      },
+      "program_4_speed": {
+        "name": "Program 4 speed"
+      }
     },
     "sensor": {
-      "watts": { "name": "Power draw" },
-      "rpm_reading": { "name": "Current RPM" },
-      "gpm_reading": { "name": "Current GPM" },
+      "watts": {
+        "name": "Power draw"
+      },
+      "rpm_reading": {
+        "name": "Current RPM"
+      },
+      "gpm_reading": {
+        "name": "Current GPM"
+      },
       "mode": {
         "name": "Operating mode",
         "state": {
@@ -74,26 +109,62 @@
           "ext_program_4": "Program 4"
         }
       },
-      "drive_state": { "name": "Drive state" },
-      "ppc": { "name": "Filter usage" },
-      "timer": { "name": "Program timer" },
-      "clock": { "name": "Pump clock" },
-      "error": { "name": "Error" }
+      "drive_state": {
+        "name": "Drive state"
+      },
+      "ppc": {
+        "name": "Filter usage"
+      },
+      "timer": {
+        "name": "Program timer"
+      },
+      "clock": {
+        "name": "Pump clock"
+      },
+      "error": {
+        "name": "Error"
+      }
     },
     "button": {
-      "manual_flow": { "name": "Manual flow" },
-      "manual_rpm": { "name": "Manual RPM" },
-      "filter_mode": { "name": "Filter mode" },
-      "release_remote": { "name": "Release to pump panel" },
-      "run_program_1": { "name": "Run program 1" },
-      "run_program_2": { "name": "Run program 2" },
-      "run_program_3": { "name": "Run program 3" },
-      "run_program_4": { "name": "Run program 4" },
-      "stop_program": { "name": "Stop program" },
-      "save_program_1": { "name": "Save reading to program 1" },
-      "save_program_2": { "name": "Save reading to program 2" },
-      "save_program_3": { "name": "Save reading to program 3" },
-      "save_program_4": { "name": "Save reading to program 4" }
+      "manual_flow": {
+        "name": "Manual flow"
+      },
+      "manual_rpm": {
+        "name": "Manual RPM"
+      },
+      "filter_mode": {
+        "name": "Filter mode"
+      },
+      "release_remote": {
+        "name": "Release to pump panel"
+      },
+      "run_program_1": {
+        "name": "Run program 1"
+      },
+      "run_program_2": {
+        "name": "Run program 2"
+      },
+      "run_program_3": {
+        "name": "Run program 3"
+      },
+      "run_program_4": {
+        "name": "Run program 4"
+      },
+      "stop_program": {
+        "name": "Stop program"
+      },
+      "save_program_1": {
+        "name": "Save reading to program 1"
+      },
+      "save_program_2": {
+        "name": "Save reading to program 2"
+      },
+      "save_program_3": {
+        "name": "Save reading to program 3"
+      },
+      "save_program_4": {
+        "name": "Save reading to program 4"
+      }
     },
     "select": {
       "command_profile": {
@@ -125,6 +196,14 @@
           "ext_program_3": "Program 3",
           "ext_program_4": "Program 4"
         }
+      }
+    },
+    "binary_sensor": {
+      "bus_online": {
+        "name": "RS485 online"
+      },
+      "cover_boost_active": {
+        "name": "Cover boost active"
       }
     }
   }

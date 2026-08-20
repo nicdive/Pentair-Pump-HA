@@ -8,7 +8,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
-from .const import DOMAIN
+from .const import ATTR_DESIRED_RUN, DOMAIN
 from .coordinator import PentairPumpCoordinator
 from .cover_boost import BoostSnapshot, CoverBoostController
 from .entity import PentairPumpEntity
@@ -22,32 +22,68 @@ async def async_setup_entry(
     stored = hass.data[DOMAIN][entry.entry_id]
     coordinator: PentairPumpCoordinator = stored["coordinator"]
     cover_boost: CoverBoostController = stored["cover_boost"]
+    entry_id = entry.entry_id
     entities: list[SwitchEntity] = []
     for pump in coordinator.hub.pumps:
-        entities.append(PentairPumpPowerSwitch(coordinator, pump.index))
-        entities.append(PentairDisplayActiveSwitch(coordinator, pump.index))
         entities.append(
-            PentairCoverBoostSwitch(coordinator, cover_boost, pump.index)
+            PentairPumpPowerSwitch(coordinator, pump.index, entry_id)
+        )
+        entities.append(
+            PentairDisplayActiveSwitch(coordinator, pump.index, entry_id)
+        )
+        entities.append(
+            PentairCoverBoostSwitch(
+                coordinator, cover_boost, pump.index, entry_id
+            )
         )
     async_add_entities(entities)
 
 
-class PentairPumpPowerSwitch(PentairPumpEntity, SwitchEntity):
-    """Switch to turn a pump on or off."""
+class PentairPumpPowerSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
+    """On/off switch. Persists desired_run so voluntary stop does not auto-resume."""
 
     _attr_translation_key = "power"
+
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is None:
+            return
+        attrs = last.attributes or {}
+        if ATTR_DESIRED_RUN in attrs:
+            desired = bool(attrs.get(ATTR_DESIRED_RUN))
+        else:
+            # Legacy fallback: only treat previous "on" as desired run.
+            desired = last.state == "on"
+        self.coordinator.hub.set_should_run(self.pump_index, desired)
 
     @property
     def is_on(self) -> bool:
         return bool(self.pump_data.get("power"))
 
+    @property
+    def extra_state_attributes(self) -> dict:
+        return {
+            ATTR_DESIRED_RUN: self.coordinator.hub.should_run(self.pump_index),
+        }
+
     async def async_turn_on(self, **kwargs) -> None:
         await self.coordinator.hub.async_set_power(self.pump_index, True)
         await self.coordinator.async_request_refresh()
+        self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs) -> None:
         await self.coordinator.hub.async_set_power(self.pump_index, False)
         await self.coordinator.async_request_refresh()
+        self.async_write_ha_state()
 
 
 class PentairDisplayActiveSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
@@ -55,6 +91,14 @@ class PentairDisplayActiveSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity)
 
     _attr_translation_key = "display_active"
     _attr_icon = "mdi:monitor"
+
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -86,8 +130,9 @@ class PentairCoverBoostSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
         coordinator: PentairPumpCoordinator,
         cover_boost: CoverBoostController,
         pump_index: int,
+        entry_id: str,
     ) -> None:
-        super().__init__(coordinator, pump_index)
+        super().__init__(coordinator, pump_index, entry_id)
         self._cover_boost = cover_boost
 
     async def async_added_to_hass(self) -> None:

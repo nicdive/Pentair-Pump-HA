@@ -24,24 +24,31 @@ async def async_setup_entry(
     stored = hass.data[DOMAIN][entry.entry_id]
     coordinator: PentairPumpCoordinator = stored["coordinator"]
     cover_boost: CoverBoostController = stored["cover_boost"]
+    entry_id = entry.entry_id
     entities: list[SelectEntity] = []
     for pump in coordinator.hub.pumps:
-        entities.append(PentairCommandProfileSelect(coordinator, pump.index))
-        entities.append(PentairPumpModeSelect(coordinator, pump.index))
+        idx = pump.index
+        entities.append(PentairCommandProfileSelect(coordinator, idx, entry_id))
+        entities.append(PentairPumpModeSelect(coordinator, idx, entry_id))
         entities.append(
-            PentairCoverBoostProfileSelect(coordinator, cover_boost, pump.index)
+            PentairCoverBoostProfileSelect(
+                coordinator, cover_boost, idx, entry_id
+            )
         )
     async_add_entities(entities)
 
 
 class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
-    """Switch RS485 command set between RPM and GPM (critical for VSF)."""
-
     _attr_translation_key = "command_profile"
     _attr_icon = "mdi:swap-horizontal"
 
-    def __init__(self, coordinator: PentairPumpCoordinator, pump_index: int) -> None:
-        super().__init__(coordinator, pump_index)
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
         self._attr_options = ["rpm", "gpm"]
 
     @property
@@ -59,13 +66,16 @@ class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
 
 
 class PentairPumpModeSelect(PentairPumpEntity, SelectEntity):
-    """Set pump operating mode (wiki action 5)."""
-
     _attr_translation_key = "pump_mode"
     _attr_icon = "mdi:state-machine"
 
-    def __init__(self, coordinator: PentairPumpCoordinator, pump_index: int) -> None:
-        super().__init__(coordinator, pump_index)
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
         self._attr_options = [
             key for key in PUMP_MODE_LABELS if not key.startswith("unknown_")
         ]
@@ -89,8 +99,6 @@ class PentairPumpModeSelect(PentairPumpEntity, SelectEntity):
 class PentairCoverBoostProfileSelect(
     PentairPumpEntity, SelectEntity, RestoreEntity
 ):
-    """RPM or GPM unit for the cover-open boost setpoint."""
-
     _attr_translation_key = "cover_boost_profile"
     _attr_icon = "mdi:swap-vertical"
 
@@ -99,8 +107,9 @@ class PentairCoverBoostProfileSelect(
         coordinator: PentairPumpCoordinator,
         cover_boost: CoverBoostController,
         pump_index: int,
+        entry_id: str,
     ) -> None:
-        super().__init__(coordinator, pump_index)
+        super().__init__(coordinator, pump_index, entry_id)
         self._cover_boost = cover_boost
         self._attr_options = ["rpm", "gpm"]
 

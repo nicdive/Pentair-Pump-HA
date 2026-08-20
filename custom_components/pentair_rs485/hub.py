@@ -349,13 +349,16 @@ class PentairHub:
             await self.async_run_rpm(index, rpm)
 
     def seed_runtime_from_status(self, index: int) -> None:
-        """After HA restart: adopt live pump state so watchdog keeps working."""
-        status = self.get_status(index)
-        if not status or not status.is_on:
-            return
+        """If desired_run is set, adopt live mode/speed for watchdog continuity.
+
+        Never flips should_run to True from live status alone — a voluntary stop
+        before HA restart must not cause an auto-start.
+        """
         if not self.should_run(index):
-            self.set_should_run(index, True)
-            _LOGGER.info("Pump %s seeded should_run from live status", index)
+            return
+        status = self.get_status(index)
+        if not status:
+            return
         if self.get_target_mode(index) is None:
             self.set_target_mode(index, status.mode)
         if status.mode == 1 and status.gpm and self.get_target_gpm(index) is None:
@@ -365,6 +368,25 @@ class PentairHub:
             self.set_target_rpm(index, status.rpm)
             if status.mode == 2:
                 self._command_profile[index] = CommandProfile.RPM
+
+    async def async_resume_desired_pumps(self) -> None:
+        """After HA start: re-apply setpoints only when desired_run was True.
+
+        If the pump was stopped on purpose (desired_run False), do nothing.
+        """
+        for pump in self.pumps:
+            index = pump.index
+            if not self.should_run(index):
+                _LOGGER.info(
+                    "Pump %s desired_run=False — skip auto-resume after HA start",
+                    index,
+                )
+                continue
+            _LOGGER.info("Pump %s desired_run=True — resume setpoint after HA start", index)
+            try:
+                await self._async_reapply_setpoint(index)
+            except (OSError, ValueError) as err:
+                _LOGGER.error("Resume failed pump %s: %s", index, err)
 
     async def async_request_status(self, index: int) -> PumpStatus | None:
         if self.is_hands_off(index):

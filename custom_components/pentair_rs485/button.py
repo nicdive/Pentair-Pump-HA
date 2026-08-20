@@ -5,6 +5,7 @@ from __future__ import annotations
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -20,31 +21,31 @@ async def async_setup_entry(
     coordinator: PentairPumpCoordinator = hass.data[DOMAIN][entry.entry_id][
         "coordinator"
     ]
+    entry_id = entry.entry_id
     entities: list[ButtonEntity] = []
     for pump in coordinator.hub.pumps:
+        idx = pump.index
         entities.extend(
             [
-                PentairManualFlowButton(coordinator, pump.index),
-                PentairManualRpmButton(coordinator, pump.index),
-                PentairFilterModeButton(coordinator, pump.index),
-                PentairReleaseRemoteButton(coordinator, pump.index),
-                PentairRunProgramButton(coordinator, pump.index, 1),
-                PentairRunProgramButton(coordinator, pump.index, 2),
-                PentairRunProgramButton(coordinator, pump.index, 3),
-                PentairRunProgramButton(coordinator, pump.index, 4),
-                PentairStopProgramButton(coordinator, pump.index),
-                PentairSaveProgramButton(coordinator, pump.index, 1),
-                PentairSaveProgramButton(coordinator, pump.index, 2),
-                PentairSaveProgramButton(coordinator, pump.index, 3),
-                PentairSaveProgramButton(coordinator, pump.index, 4),
+                PentairManualFlowButton(coordinator, idx, entry_id),
+                PentairManualRpmButton(coordinator, idx, entry_id),
+                PentairFilterModeButton(coordinator, idx, entry_id),
+                PentairReleaseRemoteButton(coordinator, idx, entry_id),
+                PentairRunProgramButton(coordinator, idx, 1, entry_id),
+                PentairRunProgramButton(coordinator, idx, 2, entry_id),
+                PentairRunProgramButton(coordinator, idx, 3, entry_id),
+                PentairRunProgramButton(coordinator, idx, 4, entry_id),
+                PentairStopProgramButton(coordinator, idx, entry_id),
+                PentairSaveProgramButton(coordinator, idx, 1, entry_id),
+                PentairSaveProgramButton(coordinator, idx, 2, entry_id),
+                PentairSaveProgramButton(coordinator, idx, 3, entry_id),
+                PentairSaveProgramButton(coordinator, idx, 4, entry_id),
             ]
         )
     async_add_entities(entities)
 
 
 class PentairManualFlowButton(PentairPumpEntity, ButtonEntity):
-    """Action 5 mode 1 — manual flow (GPM) on VF WhisperFlo."""
-
     _attr_translation_key = "manual_flow"
     _attr_icon = "mdi:water-pump"
 
@@ -54,8 +55,6 @@ class PentairManualFlowButton(PentairPumpEntity, ButtonEntity):
 
 
 class PentairManualRpmButton(PentairPumpEntity, ButtonEntity):
-    """Action 5 mode 2 — manual RPM (packet [5,1,2])."""
-
     _attr_translation_key = "manual_rpm"
     _attr_icon = "mdi:speedometer"
 
@@ -67,6 +66,7 @@ class PentairManualRpmButton(PentairPumpEntity, ButtonEntity):
 class PentairFilterModeButton(PentairPumpEntity, ButtonEntity):
     _attr_translation_key = "filter_mode"
     _attr_icon = "mdi:filter"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     async def async_press(self) -> None:
         await self.coordinator.hub.async_set_pump_mode(self.pump_index, 0)
@@ -76,6 +76,7 @@ class PentairFilterModeButton(PentairPumpEntity, ButtonEntity):
 class PentairReleaseRemoteButton(PentairPumpEntity, ButtonEntity):
     _attr_translation_key = "release_remote"
     _attr_icon = "mdi:gesture-tap-button"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     async def async_press(self) -> None:
         await self.coordinator.hub.async_release_to_pump(self.pump_index)
@@ -90,10 +91,11 @@ class PentairRunProgramButton(PentairPumpEntity, ButtonEntity):
         coordinator: PentairPumpCoordinator,
         pump_index: int,
         program: int,
+        entry_id: str,
     ) -> None:
         self._program = program
         self._attr_translation_key = f"run_program_{program}"
-        super().__init__(coordinator, pump_index)
+        super().__init__(coordinator, pump_index, entry_id)
 
     async def async_press(self) -> None:
         await self.coordinator.hub.async_run_program(self.pump_index, self._program)
@@ -110,20 +112,20 @@ class PentairStopProgramButton(PentairPumpEntity, ButtonEntity):
 
 
 class PentairSaveProgramButton(PentairPumpEntity, ButtonEntity):
-    """Save current pump RPM/GPM reading into a program slot."""
-
     _attr_has_entity_name = True
     _attr_icon = "mdi:content-save"
+    _attr_entity_category = EntityCategory.CONFIG
 
     def __init__(
         self,
         coordinator: PentairPumpCoordinator,
         pump_index: int,
         program: int,
+        entry_id: str,
     ) -> None:
         self._program = program
         self._attr_translation_key = f"save_program_{program}"
-        super().__init__(coordinator, pump_index)
+        super().__init__(coordinator, pump_index, entry_id)
 
     async def async_press(self) -> None:
         speed = self.coordinator.hub.get_live_speed_for_save(self.pump_index)

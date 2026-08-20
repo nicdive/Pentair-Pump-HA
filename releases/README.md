@@ -4,6 +4,14 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.6.2 — desired_run, USB reconnect, reconfigure
+
+- Arrêt volontaire avant reboot HA → **pas** de redémarrage auto (`desired_run`)
+- Reprise consigne seulement si `desired_run=true`
+- `pyserial` en requirement ; unique_id liés à l’entrée config
+- Reconnexion USB RS485 ; Reconfigure port/pompes
+- Binary sensors : RS485 online, boost volet actif
+
 ## v0.6.1 — Résilience redémarrage / coupure
 
 - Boost volet : plus de course au boot ; ignore `unavailable` ; snapshot restauré

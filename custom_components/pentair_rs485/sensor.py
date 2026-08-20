@@ -9,6 +9,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -29,19 +30,21 @@ async def async_setup_entry(
     coordinator: PentairPumpCoordinator = hass.data[DOMAIN][entry.entry_id][
         "coordinator"
     ]
+    entry_id = entry.entry_id
     entities: list[SensorEntity] = []
     for pump in coordinator.hub.pumps:
+        idx = pump.index
         entities.extend(
             [
-                PentairPumpWattsSensor(coordinator, pump.index),
-                PentairPumpRpmSensor(coordinator, pump.index),
-                PentairPumpGpmSensor(coordinator, pump.index),
-                PentairPumpModeSensor(coordinator, pump.index),
-                PentairPumpDriveStateSensor(coordinator, pump.index),
-                PentairPumpPpcSensor(coordinator, pump.index),
-                PentairPumpTimerSensor(coordinator, pump.index),
-                PentairPumpClockSensor(coordinator, pump.index),
-                PentairPumpErrorSensor(coordinator, pump.index),
+                PentairPumpWattsSensor(coordinator, idx, entry_id),
+                PentairPumpRpmSensor(coordinator, idx, entry_id),
+                PentairPumpGpmSensor(coordinator, idx, entry_id),
+                PentairPumpModeSensor(coordinator, idx, entry_id),
+                PentairPumpDriveStateSensor(coordinator, idx, entry_id),
+                PentairPumpPpcSensor(coordinator, idx, entry_id),
+                PentairPumpTimerSensor(coordinator, idx, entry_id),
+                PentairPumpClockSensor(coordinator, idx, entry_id),
+                PentairPumpErrorSensor(coordinator, idx, entry_id),
             ]
         )
     async_add_entities(entities)
@@ -92,6 +95,7 @@ class PentairPumpDriveStateSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "drive_state"
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(DRIVE_STATE_LABELS.keys()) + ["unknown_3", "unknown_5"]
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> str | None:
@@ -111,6 +115,7 @@ class PentairPumpPpcSensor(PentairPumpEntity, SensorEntity):
 class PentairPumpTimerSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "timer"
     _attr_native_unit_of_measurement = "min"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> int | None:
@@ -120,6 +125,7 @@ class PentairPumpTimerSensor(PentairPumpEntity, SensorEntity):
 class PentairPumpClockSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "clock"
     _attr_icon = "mdi:clock-outline"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
 
     @property
     def native_value(self) -> str | None:

@@ -25,6 +25,7 @@ PUMP_TYPES = ("VS", "VF", "VSF")
 
 ATTR_PUMP_INDEX = "pump_index"
 ATTR_PROGRAM = "program"
+ATTR_DESIRED_RUN = "desired_run"
 
 SERVICE_RUN_PROGRAM = "run_program"
 SERVICE_SAVE_PROGRAM = "save_program"

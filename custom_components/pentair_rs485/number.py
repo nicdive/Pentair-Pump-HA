@@ -31,22 +31,31 @@ async def async_setup_entry(
     stored = hass.data[DOMAIN][entry.entry_id]
     coordinator: PentairPumpCoordinator = stored["coordinator"]
     cover_boost: CoverBoostController = stored["cover_boost"]
+    entry_id = entry.entry_id
     entities: list[NumberEntity] = []
     for pump in coordinator.hub.pumps:
-        entities.append(PentairPumpRpmNumber(coordinator, pump.index))
-        entities.append(PentairPumpGpmNumber(coordinator, pump.index))
         entities.append(
-            PentairCoverBoostSpeedNumber(coordinator, cover_boost, pump.index)
+            PentairPumpRpmNumber(coordinator, pump.index, entry_id)
+        )
+        entities.append(
+            PentairPumpGpmNumber(coordinator, pump.index, entry_id)
+        )
+        entities.append(
+            PentairCoverBoostSpeedNumber(
+                coordinator, cover_boost, pump.index, entry_id
+            )
         )
         for program in range(1, 5):
             entities.append(
-                PentairProgramSpeedNumber(coordinator, pump.index, program)
+                PentairProgramSpeedNumber(
+                    coordinator, pump.index, program, entry_id
+                )
             )
     async_add_entities(entities)
 
 
-class PentairPumpRpmNumber(PentairPumpEntity, NumberEntity):
-    """Set RPM — sends Manuel RPM mode then VS RPM packet."""
+class PentairPumpRpmNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
+    """Set RPM — restores target after HA restart without auto-sending unless desired_run."""
 
     _attr_translation_key = "rpm"
     _attr_native_min_value = MIN_RPM
@@ -55,6 +64,26 @@ class PentairPumpRpmNumber(PentairPumpEntity, NumberEntity):
     _attr_mode = NumberMode.AUTO
     _attr_native_unit_of_measurement = "rpm"
     _attr_icon = "mdi:speedometer"
+
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is None or last.state in (None, "unknown", "unavailable"):
+            return
+        try:
+            self.coordinator.hub.set_target_rpm(
+                self.pump_index, int(float(last.state))
+            )
+        except ValueError:
+            return
 
     @property
     def native_value(self) -> float | None:
@@ -69,8 +98,8 @@ class PentairPumpRpmNumber(PentairPumpEntity, NumberEntity):
         await self.coordinator.async_request_refresh()
 
 
-class PentairPumpGpmNumber(PentairPumpEntity, NumberEntity):
-    """Set GPM — sends Manuel débit mode then VF GPM packet."""
+class PentairPumpGpmNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
+    """Set GPM — restores target after HA restart without auto-sending unless desired_run."""
 
     _attr_translation_key = "gpm"
     _attr_native_min_value = MIN_GPM
@@ -79,6 +108,26 @@ class PentairPumpGpmNumber(PentairPumpEntity, NumberEntity):
     _attr_mode = NumberMode.AUTO
     _attr_native_unit_of_measurement = "gpm"
     _attr_icon = "mdi:water-pump"
+
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is None or last.state in (None, "unknown", "unavailable"):
+            return
+        try:
+            self.coordinator.hub.set_target_gpm(
+                self.pump_index, int(float(last.state))
+            )
+        except ValueError:
+            return
 
     @property
     def native_value(self) -> float | None:
@@ -107,8 +156,9 @@ class PentairCoverBoostSpeedNumber(
         coordinator: PentairPumpCoordinator,
         cover_boost: CoverBoostController,
         pump_index: int,
+        entry_id: str,
     ) -> None:
-        super().__init__(coordinator, pump_index)
+        super().__init__(coordinator, pump_index, entry_id)
         self._cover_boost = cover_boost
 
     async def async_added_to_hass(self) -> None:
@@ -116,7 +166,9 @@ class PentairCoverBoostSpeedNumber(
         last = await self.async_get_last_state()
         if last is not None and last.state not in (None, "unknown", "unavailable"):
             try:
-                self._cover_boost.set_boost_speed(self.pump_index, int(float(last.state)))
+                self._cover_boost.set_boost_speed(
+                    self.pump_index, int(float(last.state))
+                )
                 return
             except ValueError:
                 pass
@@ -166,8 +218,8 @@ class PentairCoverBoostSpeedNumber(
         self.async_write_ha_state()
 
 
-class PentairProgramSpeedNumber(PentairPumpEntity, NumberEntity):
-    """Save a RPM/GPM speed into pump program slot 1-4 (wiki action save program)."""
+class PentairProgramSpeedNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
+    """Save a RPM/GPM speed into pump program slot 1-4."""
 
     _attr_mode = NumberMode.BOX
     _attr_icon = "mdi:content-save"
@@ -177,10 +229,23 @@ class PentairProgramSpeedNumber(PentairPumpEntity, NumberEntity):
         coordinator: PentairPumpCoordinator,
         pump_index: int,
         program: int,
+        entry_id: str,
     ) -> None:
         self._program = program
         self._attr_translation_key = f"program_{program}_speed"
-        super().__init__(coordinator, pump_index)
+        super().__init__(coordinator, pump_index, entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is None or last.state in (None, "unknown", "unavailable"):
+            return
+        try:
+            self.coordinator.hub.set_saved_program_speed(
+                self.pump_index, self._program, int(float(last.state))
+            )
+        except ValueError:
+            return
 
     @property
     def _uses_gpm(self) -> bool:

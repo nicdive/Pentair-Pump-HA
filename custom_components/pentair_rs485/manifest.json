@@ -6,7 +6,7 @@
   "documentation": "https://github.com/tagyoureit/nodejs-poolController",
   "integration_type": "hub",
   "iot_class": "local_polling",
-  "requirements": [],
-  "version": "0.6.1",
+  "requirements": ["pyserial>=3.5"],
+  "version": "0.6.2",
   "homeassistant": "2024.2.0"
 }

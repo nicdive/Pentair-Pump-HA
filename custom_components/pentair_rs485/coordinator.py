@@ -42,13 +42,19 @@ class PentairPumpCoordinator(DataUpdateCoordinator[dict[int, dict]]):
 
     async def _async_update_data(self) -> dict[int, dict]:
         try:
+            await self.hub.bus.async_ensure_open()
             await self.hub.async_poll_all()
         except OSError as err:
-            raise UpdateFailed(f"RS485 communication failed: {err}") from err
+            _LOGGER.warning("RS485 poll failed, attempting reconnect: %s", err)
+            try:
+                await self.hub.bus.async_reconnect()
+                await self.hub.async_poll_all()
+            except OSError as err2:
+                raise UpdateFailed(f"RS485 communication failed: {err2}") from err2
 
         data: dict[int, dict] = {}
         for pump in self.hub.pumps:
-            # After HA restart, memory targets are empty — learn from live pump.
+            # Only enrich targets when desired_run is already True (never auto-start).
             self.hub.seed_runtime_from_status(pump.index)
             data[pump.index] = self.hub.status_dict(pump.index, pump)
             if self._watchdog_enabled and self.hub.get_status(pump.index):

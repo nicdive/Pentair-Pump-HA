@@ -1,7 +1,7 @@
-"""The Pentair RS485 Pump integration v0.6.1."""
+"""The Pentair RS485 Pump integration v0.6.2."""
 
 DOMAIN = "pentair_rs485"
-PLATFORMS = ["switch", "number", "sensor", "button", "select"]
+PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]
 
 
 async def async_setup(hass, config):
@@ -59,14 +59,16 @@ async def async_setup_entry(hass, entry):
         "hub": hub,
         "coordinator": coordinator,
         "cover_boost": cover_boost,
+        "entry_id": entry.entry_id,
     }
 
-    # Platforms first so RestoreEntity can reload boost switch/speed/profile.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await cover_boost.async_setup()
 
     async def _startup_sync(_event=None):
+        # Entities have restored desired_run / boost / setpoints first.
         await cover_boost.async_startup_sync()
+        await hub.async_resume_desired_pumps()
 
     if hass.is_running:
         hass.async_create_task(_startup_sync())
@@ -85,7 +87,7 @@ async def async_setup_entry(hass, entry):
 
 
 async def _async_update_listener(hass, entry):
-    """Reload when options change (cover sensor)."""
+    """Reload when options or reconfigure data change."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
