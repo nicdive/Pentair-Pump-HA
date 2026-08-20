@@ -4,7 +4,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Current version
 
-**v0.6.0**
+**v0.6.1**
 
 ## Install
 
@@ -29,9 +29,12 @@ Versioned zips are in [`releases/`](releases/).
 - Sensors: watts, RPM, GPM, mode, drive state, **filter % (PPC)**, program timer, clock, error
 - **Cover boost**: configure a cover/binary_sensor in *Configure* → enable *Cover boost* switch → set boost speed (RPM/GPM). Opens cover → boost; closes → restore previous speed
 
-## Schedules
+## Resilience (power / HA restart)
 
-Pump-side hourly schedules are **not** written over RS485 by this integration (standalone). Use Home Assistant **Automations** / **Schedule** helpers to call RPM/GPM or `run_program` on a timetable.
+- **Watchdog**: if HA still considers the pump should run, restores mode **and** last RPM/GPM after a pump power blip
+- **HA restart**: learns live RPM/mode from the pump so watchdog keeps working; cover-boost switch/consigne/snapshot are restored; boost re-applies if the cover is still open
+- Cover sensor `unavailable`/`unknown` is ignored (does not fake a close)
+- Hourly schedules remain HA-side (Automations / Schedule)
 
 ## Notes
 

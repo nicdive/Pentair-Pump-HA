@@ -4,6 +4,11 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.6.1 — Résilience redémarrage / coupure
+
+- Boost volet : plus de course au boot ; ignore `unavailable` ; snapshot restauré
+- Watchdog : re-envoie aussi la consigne RPM/GPM ; seed depuis l’état live après reboot HA
+
 ## v0.6.0 — Boost volet + inventaire capteurs
 
 - Capteur **% filtre (PPC)** déjà exposé (sensor *Usure filtre*)

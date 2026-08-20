@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
 
 from .const import CONF_COVER_ENTITY, CONF_COVER_INVERT, DEFAULT_COVER_INVERT
@@ -21,14 +21,41 @@ _LOGGER = logging.getLogger(__name__)
 _STATE_ON = "on"
 _STATE_OPEN = "open"
 _STATE_OPENING = "opening"
+_STATE_UNAVAILABLE = "unavailable"
+_STATE_UNKNOWN = "unknown"
 _OPEN_STATES = {_STATE_ON, _STATE_OPEN, _STATE_OPENING}
+_IGNORE_STATES = {_STATE_UNAVAILABLE, _STATE_UNKNOWN, None, ""}
 
 
 @dataclass
-class _BoostSnapshot:
-    profile: CommandProfile
+class BoostSnapshot:
+    profile: str
     speed: int | None
     was_on: bool
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any] | None) -> BoostSnapshot | None:
+        if not data:
+            return None
+        try:
+            profile = str(data["profile"])
+            if profile not in ("rpm", "gpm"):
+                return None
+            speed = data.get("speed")
+            return cls(
+                profile=profile,
+                speed=int(speed) if speed is not None else None,
+                was_on=bool(data.get("was_on", False)),
+            )
+        except (KeyError, TypeError, ValueError):
+            return None
+
+    def to_dict(self) -> dict[str, Any]:
+        return asdict(self)
+
+    @property
+    def command_profile(self) -> CommandProfile:
+        return CommandProfile(self.profile)
 
 
 class CoverBoostController:
@@ -53,8 +80,13 @@ class CoverBoostController:
         self._boost_speed: dict[int, int] = {}
         self._boost_profile: dict[int, CommandProfile] = {}
         self._active: dict[int, bool] = {}
-        self._snapshot: dict[int, _BoostSnapshot] = {}
+        self._snapshot: dict[int, BoostSnapshot] = {}
         self._cover_open: bool | None = None
+        self._entities_ready = False
+
+    def mark_entities_ready(self) -> None:
+        """Entities have restored their last states; safe to act on cover."""
+        self._entities_ready = True
 
     def is_enabled(self, index: int) -> bool:
         return self._enabled.get(index, False)
@@ -80,10 +112,19 @@ class CoverBoostController:
     def is_boost_active(self, index: int) -> bool:
         return self._active.get(index, False)
 
+    def get_snapshot(self, index: int) -> BoostSnapshot | None:
+        return self._snapshot.get(index)
+
+    def restore_active_snapshot(self, index: int, snap: BoostSnapshot) -> None:
+        """After HA restart: remember pre-boost baseline while cover still open."""
+        self._snapshot[index] = snap
+        self._active[index] = True
+
     def is_cover_open(self) -> bool | None:
         return self._cover_open
 
     async def async_setup(self) -> None:
+        """Subscribe to cover changes; do not apply boost until entities are ready."""
         if not self.cover_entity_id:
             _LOGGER.info("Cover boost: no cover entity configured")
             return
@@ -92,9 +133,21 @@ class CoverBoostController:
         self._unsub = async_track_state_change_event(
             self.hass, [self.cover_entity_id], self._async_cover_changed
         )
+
+    async def async_startup_sync(self) -> None:
+        """Call after platforms restored: sync cover state and apply if needed."""
+        self.mark_entities_ready()
+        if not self.cover_entity_id:
+            return
         state = self.hass.states.get(self.cover_entity_id)
-        if state is not None:
-            await self._async_handle_cover_state(state.state)
+        if state is None or state.state in _IGNORE_STATES:
+            _LOGGER.info(
+                "Cover boost startup: cover %s not ready yet (state=%s)",
+                self.cover_entity_id,
+                None if state is None else state.state,
+            )
+            return
+        await self._async_handle_cover_state(state.state, force=True)
 
     async def async_shutdown(self) -> None:
         if self._unsub:
@@ -107,26 +160,36 @@ class CoverBoostController:
             return
         self.hass.async_create_task(self._async_handle_cover_state(new_state.state))
 
-    def _raw_is_open(self, state: str) -> bool:
+    def _raw_is_open(self, state: str) -> bool | None:
+        if state in _IGNORE_STATES:
+            return None
         open_ = state in _OPEN_STATES
         return (not open_) if self.cover_invert else open_
 
-    async def _async_handle_cover_state(self, state: str) -> None:
+    async def _async_handle_cover_state(
+        self, state: str, *, force: bool = False
+    ) -> None:
         is_open = self._raw_is_open(state)
-        if self._cover_open is is_open:
+        if is_open is None:
+            _LOGGER.debug("Cover boost ignoring transient state %s", state)
+            return
+        if not force and self._cover_open is is_open:
             return
         previous = self._cover_open
         self._cover_open = is_open
         _LOGGER.info(
-            "Cover %s state=%s open=%s (was %s)",
+            "Cover %s state=%s open=%s (was %s) entities_ready=%s",
             self.cover_entity_id,
             state,
             is_open,
             previous,
+            self._entities_ready,
         )
+        if not self._entities_ready:
+            return
         if is_open:
             await self._async_apply_boost_all()
-        elif previous is True:
+        elif previous is True or (force and not is_open):
             await self._async_restore_all()
 
     async def async_reevaluate_pump(self, index: int) -> None:
@@ -134,7 +197,11 @@ class CoverBoostController:
         if self._cover_open is None and self.cover_entity_id:
             state = self.hass.states.get(self.cover_entity_id)
             if state is not None:
-                self._cover_open = self._raw_is_open(state.state)
+                parsed = self._raw_is_open(state.state)
+                if parsed is not None:
+                    self._cover_open = parsed
+        if not self._entities_ready:
+            return
         if self._cover_open and self.is_enabled(index):
             await self._async_apply_boost(index)
         elif self.is_boost_active(index) and (
@@ -162,11 +229,17 @@ class CoverBoostController:
             prev_profile = self.hub.get_command_profile(index)
             if prev_profile == CommandProfile.GPM:
                 prev_speed = self.hub.get_target_gpm(index)
+                if prev_speed is None:
+                    status = self.hub.get_status(index)
+                    prev_speed = status.gpm if status and status.gpm else None
             else:
                 prev_speed = self.hub.get_target_rpm(index)
+                if prev_speed is None:
+                    status = self.hub.get_status(index)
+                    prev_speed = status.rpm if status and status.rpm else None
             status = self.hub.get_status(index)
-            self._snapshot[index] = _BoostSnapshot(
-                profile=prev_profile,
+            self._snapshot[index] = BoostSnapshot(
+                profile=prev_profile.value,
                 speed=prev_speed,
                 was_on=bool(status and status.is_on),
             )
@@ -189,13 +262,13 @@ class CoverBoostController:
         _LOGGER.info(
             "Cover boost restore pump %s profile=%s speed=%s was_on=%s",
             index,
-            snap.profile.value,
+            snap.profile,
             snap.speed,
             snap.was_on,
         )
         try:
             if snap.speed is not None:
-                if snap.profile == CommandProfile.GPM:
+                if snap.command_profile == CommandProfile.GPM:
                     await self.hub.async_run_gpm(index, snap.speed)
                 else:
                     await self.hub.async_run_rpm(index, snap.speed)

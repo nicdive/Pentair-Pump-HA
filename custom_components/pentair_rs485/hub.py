@@ -319,7 +319,9 @@ class PentairHub:
             return
         status = self.get_status(index)
         if status and status.mode == target_mode:
-            return
+            # Mode OK — still re-apply setpoint if pump stopped after power loss.
+            if status.is_on:
+                return
         self._recovery_in_progress.add(index)
         try:
             _LOGGER.warning(
@@ -329,9 +331,40 @@ class PentairHub:
                 decode_mode(status.mode) if status else "?",
             )
             await self.async_set_pump_mode(index, target_mode)
+            await self._async_reapply_setpoint(index)
             await asyncio.sleep(delay)
         finally:
             self._recovery_in_progress.discard(index)
+
+    async def _async_reapply_setpoint(self, index: int) -> None:
+        """Re-send last RPM/GPM after power loss (mode alone is not enough)."""
+        profile = self.get_command_profile(index)
+        if profile == CommandProfile.GPM:
+            gpm = self.get_target_gpm(index)
+            if gpm is not None:
+                await self.async_run_gpm(index, gpm)
+                return
+        rpm = self.get_target_rpm(index)
+        if rpm is not None:
+            await self.async_run_rpm(index, rpm)
+
+    def seed_runtime_from_status(self, index: int) -> None:
+        """After HA restart: adopt live pump state so watchdog keeps working."""
+        status = self.get_status(index)
+        if not status or not status.is_on:
+            return
+        if not self.should_run(index):
+            self.set_should_run(index, True)
+            _LOGGER.info("Pump %s seeded should_run from live status", index)
+        if self.get_target_mode(index) is None:
+            self.set_target_mode(index, status.mode)
+        if status.mode == 1 and status.gpm and self.get_target_gpm(index) is None:
+            self.set_target_gpm(index, status.gpm)
+            self._command_profile[index] = CommandProfile.GPM
+        elif status.rpm and self.get_target_rpm(index) is None:
+            self.set_target_rpm(index, status.rpm)
+            if status.mode == 2:
+                self._command_profile[index] = CommandProfile.RPM
 
     async def async_request_status(self, index: int) -> PumpStatus | None:
         if self.is_hands_off(index):

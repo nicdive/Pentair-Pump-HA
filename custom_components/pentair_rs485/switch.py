@@ -10,7 +10,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import DOMAIN
 from .coordinator import PentairPumpCoordinator
-from .cover_boost import CoverBoostController
+from .cover_boost import BoostSnapshot, CoverBoostController
 from .entity import PentairPumpEntity
 
 
@@ -50,11 +50,17 @@ class PentairPumpPowerSwitch(PentairPumpEntity, SwitchEntity):
         await self.coordinator.async_request_refresh()
 
 
-class PentairDisplayActiveSwitch(PentairPumpEntity, SwitchEntity):
+class PentairDisplayActiveSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
     """Keep the pump LCD active while HA can still send remote commands."""
 
     _attr_translation_key = "display_active"
     _attr_icon = "mdi:monitor"
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is not None and last.state == "on":
+            await self.coordinator.hub.async_set_display_active(self.pump_index, True)
 
     @property
     def is_on(self) -> bool:
@@ -87,8 +93,21 @@ class PentairCoverBoostSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
         last = await self.async_get_last_state()
-        if last is not None and last.state == "on":
+        if last is None:
+            return
+        if last.state == "on":
             self._cover_boost.set_enabled(self.pump_index, True)
+        attrs = last.attributes or {}
+        if attrs.get("boost_active"):
+            snap = BoostSnapshot.from_dict(
+                {
+                    "profile": attrs.get("boost_prev_profile"),
+                    "speed": attrs.get("boost_prev_speed"),
+                    "was_on": attrs.get("boost_prev_was_on", True),
+                }
+            )
+            if snap is not None:
+                self._cover_boost.restore_active_snapshot(self.pump_index, snap)
 
     @property
     def is_on(self) -> bool:
@@ -97,6 +116,20 @@ class PentairCoverBoostSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
     @property
     def available(self) -> bool:
         return bool(self._cover_boost.cover_entity_id)
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        snap = self._cover_boost.get_snapshot(self.pump_index)
+        active = self._cover_boost.is_boost_active(self.pump_index)
+        attrs: dict = {
+            "boost_active": active,
+            "cover_open": self._cover_boost.is_cover_open(),
+        }
+        if snap is not None:
+            attrs["boost_prev_profile"] = snap.profile
+            attrs["boost_prev_speed"] = snap.speed
+            attrs["boost_prev_was_on"] = snap.was_on
+        return attrs
 
     async def async_turn_on(self, **kwargs) -> None:
         self._cover_boost.set_enabled(self.pump_index, True)

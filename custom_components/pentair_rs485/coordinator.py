@@ -48,6 +48,8 @@ class PentairPumpCoordinator(DataUpdateCoordinator[dict[int, dict]]):
 
         data: dict[int, dict] = {}
         for pump in self.hub.pumps:
+            # After HA restart, memory targets are empty — learn from live pump.
+            self.hub.seed_runtime_from_status(pump.index)
             data[pump.index] = self.hub.status_dict(pump.index, pump)
             if self._watchdog_enabled and self.hub.get_status(pump.index):
                 self._maybe_schedule_recovery(pump.index, data[pump.index])
@@ -63,14 +65,24 @@ class PentairPumpCoordinator(DataUpdateCoordinator[dict[int, dict]]):
 
         target_mode = self.hub.get_target_mode(index)
         measured_mode = pump_data.get("mode")
-        if target_mode is None or measured_mode == target_mode:
+        status = self.hub.get_status(index)
+        mode_ok = target_mode is None or measured_mode == target_mode
+        # Power loss can leave mode OK but pump stopped / setpoint lost.
+        needs_speed = False
+        if status and self.hub.should_run(index) and not status.is_on:
+            needs_speed = (
+                self.hub.get_target_rpm(index) is not None
+                or self.hub.get_target_gpm(index) is not None
+            )
+        if mode_ok and not needs_speed:
             return
 
         _LOGGER.warning(
-            "Watchdog pump %s mode target=%s measured=%s",
+            "Watchdog pump %s mode target=%s measured=%s on=%s",
             index,
             pump_data.get("target_mode_label"),
             pump_data.get("mode_label"),
+            bool(status and status.is_on),
         )
         self._recovery_pending.add(index)
         self.hass.async_create_task(self._run_recovery(index))
