@@ -1,7 +1,7 @@
-"""The Pentair RS485 Pump integration v0.5.2."""
+"""The Pentair RS485 Pump integration v0.5.3."""
 
 DOMAIN = "pentair_rs485"
-PLATFORMS = ["switch", "number", "sensor", "button"]
+PLATFORMS = ["switch", "number", "sensor", "button", "select"]
 
 
 async def async_setup(hass, config):

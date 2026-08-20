@@ -14,7 +14,7 @@
         "description": "Define each pump connected on the RS485 bus.",
         "data": {
           "pump_index": "Pump index (1-16, maps to address 96-111)",
-          "pump_type": "Pump type (informational)",
+          "pump_type": "Pump type (VS / VF / VSF — VSF supports RPM and GPM)",
           "pump_name": "Friendly name",
           "add_another": "Add another pump"
         }
@@ -80,6 +80,31 @@
       "save_program_2": { "name": "Save reading to program 2" },
       "save_program_3": { "name": "Save reading to program 3" },
       "save_program_4": { "name": "Save reading to program 4" }
+    },
+    "select": {
+      "command_profile": {
+        "name": "Command profile",
+        "state": {
+          "rpm": "RPM (speed)",
+          "gpm": "GPM (flow)"
+        }
+      },
+      "pump_mode": {
+        "name": "Set operating mode",
+        "state": {
+          "filter": "Filter",
+          "manual_flow": "Manual flow",
+          "manual_rpm": "Manual RPM",
+          "speed_2": "Speed 2",
+          "speed_3": "Speed 3",
+          "speed_4": "Speed 4",
+          "feature_1": "Feature 1",
+          "ext_program_1": "Program 1",
+          "ext_program_2": "Program 2",
+          "ext_program_3": "Program 3",
+          "ext_program_4": "Program 4"
+        }
+      }
     }
   }
 }

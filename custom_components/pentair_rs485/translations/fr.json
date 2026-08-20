@@ -13,7 +13,7 @@
         "title": "Ajouter une pompe",
         "data": {
           "pump_index": "Index pompe (1-16)",
-          "pump_type": "Type (informatif)",
+          "pump_type": "Type (VS / VF / VSF — VSF gère RPM et GPM)",
           "pump_name": "Nom",
           "add_another": "Ajouter une autre pompe"
         }
@@ -76,6 +76,31 @@
       "save_program_2": { "name": "Sauver mesure → programme 2" },
       "save_program_3": { "name": "Sauver mesure → programme 3" },
       "save_program_4": { "name": "Sauver mesure → programme 4" }
+    },
+    "select": {
+      "command_profile": {
+        "name": "Profil de commande",
+        "state": {
+          "rpm": "RPM (vitesse)",
+          "gpm": "GPM (débit)"
+        }
+      },
+      "pump_mode": {
+        "name": "Choisir le mode",
+        "state": {
+          "filter": "Filtre",
+          "manual_flow": "Manuel débit",
+          "manual_rpm": "Manuel RPM",
+          "speed_2": "Vitesse 2",
+          "speed_3": "Vitesse 3",
+          "speed_4": "Vitesse 4",
+          "feature_1": "Feature 1",
+          "ext_program_1": "Programme 1",
+          "ext_program_2": "Programme 2",
+          "ext_program_3": "Programme 3",
+          "ext_program_4": "Programme 4"
+        }
+      }
     }
   }
 }

@@ -30,7 +30,7 @@ async def async_setup_entry(
 
 
 class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
-    """Switch RS485 command set between VS (RPM) and VF (GPM) packets."""
+    """Switch RS485 command set between RPM and GPM (critical for VSF)."""
 
     _attr_translation_key = "command_profile"
     _attr_icon = "mdi:swap-horizontal"
@@ -46,6 +46,10 @@ class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
     async def async_select_option(self, option: str) -> None:
         profile = CommandProfile(option)
         self.coordinator.hub.set_command_profile(self.pump_index, profile)
+        if profile == CommandProfile.GPM:
+            await self.coordinator.hub.async_send_manual_mode(self.pump_index)
+        else:
+            await self.coordinator.hub.async_send_speed1_mode(self.pump_index)
         await self.coordinator.async_request_refresh()
 
 
@@ -57,7 +61,12 @@ class PentairPumpModeSelect(PentairPumpEntity, SelectEntity):
 
     def __init__(self, coordinator: PentairPumpCoordinator, pump_index: int) -> None:
         super().__init__(coordinator, pump_index)
-        self._attr_options = list(PUMP_MODE_LABELS.keys())
+        # Exclude placeholder unknown_* modes from the user-facing selector.
+        self._attr_options = [
+            key
+            for key in PUMP_MODE_LABELS
+            if not key.startswith("unknown_")
+        ]
 
     @property
     def current_option(self) -> str | None:
@@ -71,6 +80,5 @@ class PentairPumpModeSelect(PentairPumpEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         mode_id = PUMP_MODE_BY_NAME[option]
-        self.coordinator.hub.set_target_mode(self.pump_index, mode_id)
         await self.coordinator.hub.async_set_pump_mode(self.pump_index, mode_id)
         await self.coordinator.async_request_refresh()

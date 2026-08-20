@@ -32,6 +32,14 @@ from .rs485.packets import (
 _LOGGER = logging.getLogger(__name__)
 
 
+def _default_profile(pump_type: PumpType) -> CommandProfile:
+    """Default RS485 command set from configured pump type."""
+    if pump_type == PumpType.VF:
+        return CommandProfile.GPM
+    # VS and VSF default to RPM; VSF can switch to GPM via the select entity.
+    return CommandProfile.RPM
+
+
 @dataclass(slots=True)
 class PumpConfig:
     index: int
@@ -48,6 +56,7 @@ class PentairHub:
     _target_rpm: dict[int, int] = field(default_factory=dict)
     _target_gpm: dict[int, int] = field(default_factory=dict)
     _target_mode: dict[int, int] = field(default_factory=dict)
+    _command_profile: dict[int, CommandProfile] = field(default_factory=dict)
     _should_run: dict[int, bool] = field(default_factory=dict)
     _display_active: dict[int, bool] = field(default_factory=dict)
     _hands_off: set[int] = field(default_factory=set)
@@ -56,6 +65,9 @@ class PentairHub:
 
     async def async_setup(self) -> None:
         await self.bus.async_open()
+        for pump in self.pumps:
+            if pump.index not in self._command_profile:
+                self._command_profile[pump.index] = _default_profile(pump.pump_type)
 
     async def async_shutdown(self) -> None:
         await self.bus.async_close()
@@ -70,20 +82,33 @@ class PentairHub:
         return self._target_gpm.get(index)
 
     def get_command_profile(self, index: int) -> CommandProfile:
-        """Infer packet type from target mode: manual_flow=GPM, manual_rpm=RPM."""
+        """Active RS485 command set (RPM vs GPM), with mode-based fallback."""
+        if index in self._command_profile:
+            return self._command_profile[index]
         mode = self.get_target_mode(index)
         if mode == 1:
             return CommandProfile.GPM
+        pump = next((p for p in self.pumps if p.index == index), None)
+        if pump:
+            return _default_profile(pump.pump_type)
         return CommandProfile.RPM
+
+    def set_command_profile(self, index: int, profile: CommandProfile) -> None:
+        self._command_profile[index] = profile
+        if profile == CommandProfile.GPM:
+            self.set_target_mode(index, 1)
+        else:
+            self.set_target_mode(index, 2)
+        _LOGGER.info("Pump %s command profile set to %s", index, profile.value)
 
     def get_live_speed_for_save(self, index: int) -> int | None:
         status = self.get_status(index)
         if not status:
             return None
-        mode = self.get_target_mode(index)
-        if mode == 1 and status.gpm:
+        profile = self.get_command_profile(index)
+        if profile == CommandProfile.GPM and status.gpm:
             return status.gpm
-        if mode == 2 and status.rpm:
+        if profile == CommandProfile.RPM and status.rpm:
             return status.rpm
         return status.rpm or status.gpm or None
 
@@ -142,12 +167,13 @@ class PentairHub:
                 "mode": 0,
                 "mode_label": "filter",
                 "target_mode": None,
-            "target_mode_label": None,
-            "program_1_speed": self.get_saved_program_speed(index, 1),
-            "program_2_speed": self.get_saved_program_speed(index, 2),
-            "program_3_speed": self.get_saved_program_speed(index, 3),
-            "program_4_speed": self.get_saved_program_speed(index, 4),
-            "drivestate": 0,
+                "target_mode_label": None,
+                "command_profile": self.get_command_profile(index).value,
+                "program_1_speed": self.get_saved_program_speed(index, 1),
+                "program_2_speed": self.get_saved_program_speed(index, 2),
+                "program_3_speed": self.get_saved_program_speed(index, 3),
+                "program_4_speed": self.get_saved_program_speed(index, 4),
+                "drivestate": 0,
                 "drivestate_label": "fault",
                 "ppc": 0,
                 "timer": 0,
@@ -173,6 +199,7 @@ class PentairHub:
                 if self.get_target_mode(index) is not None
                 else None
             ),
+            "command_profile": self.get_command_profile(index).value,
             "program_1_speed": self.get_saved_program_speed(index, 1),
             "program_2_speed": self.get_saved_program_speed(index, 2),
             "program_3_speed": self.get_saved_program_speed(index, 3),
@@ -212,6 +239,10 @@ class PentairHub:
 
     async def async_set_pump_mode(self, index: int, mode: int) -> PumpStatus | None:
         self.set_target_mode(index, mode)
+        if mode == 1:
+            self._command_profile[index] = CommandProfile.GPM
+        elif mode == 2:
+            self._command_profile[index] = CommandProfile.RPM
         address = self._address(index)
         _LOGGER.info("Set pump %s mode %s (address %s)", index, mode, address)
         return await self._run_command(
@@ -224,7 +255,7 @@ class PentairHub:
 
     async def async_send_manual_mode(self, index: int) -> PumpStatus | None:
         """Wiki action 5 mode 1 = Manual flow (GPM)."""
-        self.set_target_mode(index, 1)
+        self.set_command_profile(index, CommandProfile.GPM)
         self.set_should_run(index, True)
         address = self._address(index)
         return await self._run_command(
@@ -237,7 +268,7 @@ class PentairHub:
 
     async def async_send_speed1_mode(self, index: int) -> PumpStatus | None:
         """Wiki action 5 mode 2 = Manual RPM (packet [5,1,2])."""
-        self.set_target_mode(index, 2)
+        self.set_command_profile(index, CommandProfile.RPM)
         self.set_should_run(index, True)
         address = self._address(index)
         return await self._run_command(
@@ -328,10 +359,10 @@ class PentairHub:
         )
 
     async def async_run_rpm(self, index: int, rpm: int) -> PumpStatus | None:
-        """VF WhisperFlo: manual RPM mode first, then VS-style RPM packet."""
+        """Manual RPM mode first, then VS-style RPM packet (VS / VSF / VF)."""
         if not validate_rpm(rpm):
             raise ValueError(f"RPM {rpm} out of range")
-        self.set_target_mode(index, 2)
+        self.set_command_profile(index, CommandProfile.RPM)
         self.set_target_rpm(index, rpm)
         self.set_should_run(index, True)
         address = self._address(index)
@@ -346,10 +377,10 @@ class PentairHub:
         )
 
     async def async_run_gpm(self, index: int, gpm: int) -> PumpStatus | None:
-        """VF WhisperFlo: manual flow mode first, then VF-style GPM packet."""
+        """Manual flow mode first, then VF-style GPM packet (VF / VSF)."""
         if not validate_gpm(gpm):
             raise ValueError(f"GPM {gpm} out of range")
-        self.set_target_mode(index, 1)
+        self.set_command_profile(index, CommandProfile.GPM)
         self.set_target_gpm(index, gpm)
         self.set_should_run(index, True)
         address = self._address(index)

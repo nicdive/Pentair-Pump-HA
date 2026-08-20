@@ -4,7 +4,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Current version
 
-**v0.5.2**
+**v0.5.3**
 
 ## Install
 
@@ -24,5 +24,7 @@ Versioned zips are in [`releases/`](releases/).
 ## Notes
 
 - Designed for direct RS485 control (no EasyTouch/IntelliCenter required)
-- Multiple pumps can share one USB RS485 adapter (different pump addresses)
-- Field-tested on IntelliFlo VF WhisperFlo
+- Supports IntelliFlo **VS**, **VF**, and **VSF** (VSF can run in RPM or GPM via the command profile select)
+- Multiple pumps can share one USB RS485 adapter (different pump indexes / addresses 96–111)
+- Operating mode select, program buttons 1–4, and program speed numbers are exposed per pump
+- Field-tested on IntelliFlo VF WhisperFlo; VSF uses the same RS485 command set
