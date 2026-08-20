@@ -4,7 +4,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Current version
 
-**v0.5.3**
+**v0.6.0**
 
 ## Install
 
@@ -21,10 +21,18 @@ Versioned zips are in [`releases/`](releases/).
 ./build_release.sh
 ```
 
+## Features
+
+- IntelliFlo **VS**, **VF**, **VSF** (VSF: RPM or GPM via command profile)
+- Multiple pumps on one USB RS485 adapter (indexes → addresses 96–111)
+- Mode select, program buttons 1–4, RPM/GPM setpoints
+- Sensors: watts, RPM, GPM, mode, drive state, **filter % (PPC)**, program timer, clock, error
+- **Cover boost**: configure a cover/binary_sensor in *Configure* → enable *Cover boost* switch → set boost speed (RPM/GPM). Opens cover → boost; closes → restore previous speed
+
+## Schedules
+
+Pump-side hourly schedules are **not** written over RS485 by this integration (standalone). Use Home Assistant **Automations** / **Schedule** helpers to call RPM/GPM or `run_program` on a timetable.
+
 ## Notes
 
-- Designed for direct RS485 control (no EasyTouch/IntelliCenter required)
-- Supports IntelliFlo **VS**, **VF**, and **VSF** (VSF can run in RPM or GPM via the command profile select)
-- Multiple pumps can share one USB RS485 adapter (different pump indexes / addresses 96–111)
-- Operating mode select, program buttons 1–4, and program speed numbers are exposed per pump
 - Field-tested on IntelliFlo VF WhisperFlo; VSF uses the same RS485 command set

@@ -27,14 +27,28 @@
       "already_configured": "This port is already configured."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pool cover boost",
+        "description": "Pick the cover / binary sensor that raises pump speed when the cover opens. Leave empty to disable.",
+        "data": {
+          "cover_entity_id": "Cover / shutter sensor",
+          "cover_invert": "Invert (on = closed)"
+        }
+      }
+    }
+  },
   "entity": {
     "switch": {
       "power": { "name": "Power" },
-      "display_active": { "name": "Display active" }
+      "display_active": { "name": "Display active" },
+      "cover_boost": { "name": "Cover boost" }
     },
     "number": {
       "rpm": { "name": "Speed (RPM)" },
       "gpm": { "name": "Flow (GPM)" },
+      "cover_boost_speed": { "name": "Cover boost speed" },
       "program_1_speed": { "name": "Program 1 speed" },
       "program_2_speed": { "name": "Program 2 speed" },
       "program_3_speed": { "name": "Program 3 speed" },
@@ -84,6 +98,13 @@
     "select": {
       "command_profile": {
         "name": "Command profile",
+        "state": {
+          "rpm": "RPM (speed)",
+          "gpm": "GPM (flow)"
+        }
+      },
+      "cover_boost_profile": {
+        "name": "Cover boost unit",
         "state": {
           "rpm": "RPM (speed)",
           "gpm": "GPM (flow)"

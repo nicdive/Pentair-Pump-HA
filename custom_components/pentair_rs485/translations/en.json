@@ -29,21 +29,49 @@
   },
   "entity": {
     "switch": {
-      "power": { "name": "Power" },
-      "display_active": { "name": "Display active" }
+      "power": {
+        "name": "Power"
+      },
+      "display_active": {
+        "name": "Display active"
+      },
+      "cover_boost": {
+        "name": "Cover boost"
+      }
     },
     "number": {
-      "rpm": { "name": "Speed (RPM)" },
-      "gpm": { "name": "Flow (GPM)" },
-      "program_1_speed": { "name": "Program 1 speed" },
-      "program_2_speed": { "name": "Program 2 speed" },
-      "program_3_speed": { "name": "Program 3 speed" },
-      "program_4_speed": { "name": "Program 4 speed" }
+      "rpm": {
+        "name": "Speed (RPM)"
+      },
+      "gpm": {
+        "name": "Flow (GPM)"
+      },
+      "program_1_speed": {
+        "name": "Program 1 speed"
+      },
+      "program_2_speed": {
+        "name": "Program 2 speed"
+      },
+      "program_3_speed": {
+        "name": "Program 3 speed"
+      },
+      "program_4_speed": {
+        "name": "Program 4 speed"
+      },
+      "cover_boost_speed": {
+        "name": "Cover boost speed"
+      }
     },
     "sensor": {
-      "watts": { "name": "Power draw" },
-      "rpm_reading": { "name": "Current RPM" },
-      "gpm_reading": { "name": "Current GPM" },
+      "watts": {
+        "name": "Power draw"
+      },
+      "rpm_reading": {
+        "name": "Current RPM"
+      },
+      "gpm_reading": {
+        "name": "Current GPM"
+      },
       "mode": {
         "name": "Operating mode",
         "state": {
@@ -60,26 +88,62 @@
           "ext_program_4": "Program 4"
         }
       },
-      "drive_state": { "name": "Drive state" },
-      "ppc": { "name": "Filter usage" },
-      "timer": { "name": "Program timer" },
-      "clock": { "name": "Pump clock" },
-      "error": { "name": "Error" }
+      "drive_state": {
+        "name": "Drive state"
+      },
+      "ppc": {
+        "name": "Filter usage"
+      },
+      "timer": {
+        "name": "Program timer"
+      },
+      "clock": {
+        "name": "Pump clock"
+      },
+      "error": {
+        "name": "Error"
+      }
     },
     "button": {
-      "manual_flow": { "name": "Manual flow" },
-      "manual_rpm": { "name": "Manual RPM" },
-      "filter_mode": { "name": "Filter mode" },
-      "release_remote": { "name": "Release to pump panel" },
-      "run_program_1": { "name": "Run program 1" },
-      "run_program_2": { "name": "Run program 2" },
-      "run_program_3": { "name": "Run program 3" },
-      "run_program_4": { "name": "Run program 4" },
-      "stop_program": { "name": "Stop program" },
-      "save_program_1": { "name": "Save reading to program 1" },
-      "save_program_2": { "name": "Save reading to program 2" },
-      "save_program_3": { "name": "Save reading to program 3" },
-      "save_program_4": { "name": "Save reading to program 4" }
+      "manual_flow": {
+        "name": "Manual flow"
+      },
+      "manual_rpm": {
+        "name": "Manual RPM"
+      },
+      "filter_mode": {
+        "name": "Filter mode"
+      },
+      "release_remote": {
+        "name": "Release to pump panel"
+      },
+      "run_program_1": {
+        "name": "Run program 1"
+      },
+      "run_program_2": {
+        "name": "Run program 2"
+      },
+      "run_program_3": {
+        "name": "Run program 3"
+      },
+      "run_program_4": {
+        "name": "Run program 4"
+      },
+      "stop_program": {
+        "name": "Stop program"
+      },
+      "save_program_1": {
+        "name": "Save reading to program 1"
+      },
+      "save_program_2": {
+        "name": "Save reading to program 2"
+      },
+      "save_program_3": {
+        "name": "Save reading to program 3"
+      },
+      "save_program_4": {
+        "name": "Save reading to program 4"
+      }
     },
     "select": {
       "command_profile": {
@@ -103,6 +167,25 @@
           "ext_program_2": "Program 2",
           "ext_program_3": "Program 3",
           "ext_program_4": "Program 4"
+        }
+      },
+      "cover_boost_profile": {
+        "name": "Cover boost unit",
+        "state": {
+          "rpm": "RPM (speed)",
+          "gpm": "GPM (flow)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Pool cover boost",
+        "description": "Pick the cover / binary sensor that raises pump speed when the cover opens. Leave empty to disable.",
+        "data": {
+          "cover_entity_id": "Cover / shutter sensor",
+          "cover_invert": "Invert (on = closed)"
         }
       }
     }

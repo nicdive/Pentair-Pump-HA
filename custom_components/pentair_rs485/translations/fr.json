@@ -25,21 +25,49 @@
   },
   "entity": {
     "switch": {
-      "power": { "name": "Marche" },
-      "display_active": { "name": "Afficheur actif" }
+      "power": {
+        "name": "Marche"
+      },
+      "display_active": {
+        "name": "Afficheur actif"
+      },
+      "cover_boost": {
+        "name": "Boost volet ouvert"
+      }
     },
     "number": {
-      "rpm": { "name": "Vitesse (RPM)" },
-      "gpm": { "name": "Débit (GPM)" },
-      "program_1_speed": { "name": "Vitesse programme 1" },
-      "program_2_speed": { "name": "Vitesse programme 2" },
-      "program_3_speed": { "name": "Vitesse programme 3" },
-      "program_4_speed": { "name": "Vitesse programme 4" }
+      "rpm": {
+        "name": "Vitesse (RPM)"
+      },
+      "gpm": {
+        "name": "Débit (GPM)"
+      },
+      "program_1_speed": {
+        "name": "Vitesse programme 1"
+      },
+      "program_2_speed": {
+        "name": "Vitesse programme 2"
+      },
+      "program_3_speed": {
+        "name": "Vitesse programme 3"
+      },
+      "program_4_speed": {
+        "name": "Vitesse programme 4"
+      },
+      "cover_boost_speed": {
+        "name": "Consigne boost volet"
+      }
     },
     "sensor": {
-      "watts": { "name": "Puissance" },
-      "rpm_reading": { "name": "RPM actuel" },
-      "gpm_reading": { "name": "GPM actuel" },
+      "watts": {
+        "name": "Puissance"
+      },
+      "rpm_reading": {
+        "name": "RPM actuel"
+      },
+      "gpm_reading": {
+        "name": "GPM actuel"
+      },
       "mode": {
         "name": "Mode de fonctionnement",
         "state": {
@@ -56,26 +84,62 @@
           "ext_program_4": "Programme 4"
         }
       },
-      "drive_state": { "name": "État entraînement" },
-      "ppc": { "name": "Usure filtre (%)" },
-      "timer": { "name": "Timer programme" },
-      "clock": { "name": "Horloge pompe" },
-      "error": { "name": "Erreur" }
+      "drive_state": {
+        "name": "État entraînement"
+      },
+      "ppc": {
+        "name": "Usure filtre (%)"
+      },
+      "timer": {
+        "name": "Timer programme"
+      },
+      "clock": {
+        "name": "Horloge pompe"
+      },
+      "error": {
+        "name": "Erreur"
+      }
     },
     "button": {
-      "manual_flow": { "name": "Manuel débit" },
-      "manual_rpm": { "name": "Manuel RPM" },
-      "filter_mode": { "name": "Mode filtre" },
-      "release_remote": { "name": "Rendre la main à la pompe" },
-      "run_program_1": { "name": "Lancer programme 1" },
-      "run_program_2": { "name": "Lancer programme 2" },
-      "run_program_3": { "name": "Lancer programme 3" },
-      "run_program_4": { "name": "Lancer programme 4" },
-      "stop_program": { "name": "Arrêter programme" },
-      "save_program_1": { "name": "Sauver mesure → programme 1" },
-      "save_program_2": { "name": "Sauver mesure → programme 2" },
-      "save_program_3": { "name": "Sauver mesure → programme 3" },
-      "save_program_4": { "name": "Sauver mesure → programme 4" }
+      "manual_flow": {
+        "name": "Manuel débit"
+      },
+      "manual_rpm": {
+        "name": "Manuel RPM"
+      },
+      "filter_mode": {
+        "name": "Mode filtre"
+      },
+      "release_remote": {
+        "name": "Rendre la main à la pompe"
+      },
+      "run_program_1": {
+        "name": "Lancer programme 1"
+      },
+      "run_program_2": {
+        "name": "Lancer programme 2"
+      },
+      "run_program_3": {
+        "name": "Lancer programme 3"
+      },
+      "run_program_4": {
+        "name": "Lancer programme 4"
+      },
+      "stop_program": {
+        "name": "Arrêter programme"
+      },
+      "save_program_1": {
+        "name": "Sauver mesure → programme 1"
+      },
+      "save_program_2": {
+        "name": "Sauver mesure → programme 2"
+      },
+      "save_program_3": {
+        "name": "Sauver mesure → programme 3"
+      },
+      "save_program_4": {
+        "name": "Sauver mesure → programme 4"
+      }
     },
     "select": {
       "command_profile": {
@@ -99,6 +163,25 @@
           "ext_program_2": "Programme 2",
           "ext_program_3": "Programme 3",
           "ext_program_4": "Programme 4"
+        }
+      },
+      "cover_boost_profile": {
+        "name": "Unité boost volet",
+        "state": {
+          "rpm": "RPM (vitesse)",
+          "gpm": "GPM (débit)"
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Boost à l’ouverture du volet",
+        "description": "Choisir le capteur volet / binary_sensor. À l’ouverture, la pompe passe à la consigne boost si le switch est activé.",
+        "data": {
+          "cover_entity_id": "Capteur volet / store",
+          "cover_invert": "Inverser (on = fermé)"
         }
       }
     }

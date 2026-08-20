@@ -8,15 +8,19 @@ from typing import Any
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_PORT
+from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
     CONF_APP_ADDRESS,
+    CONF_COVER_ENTITY,
+    CONF_COVER_INVERT,
     CONF_PUMP_INDEX,
     CONF_PUMP_NAME,
     CONF_PUMP_TYPE,
     CONF_PUMPS,
     DEFAULT_APP_ADDRESS,
+    DEFAULT_COVER_INVERT,
     DOMAIN,
     PUMP_TYPES,
 )
@@ -107,3 +111,60 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_PUMPS: self.context.get("pumps", []),
             },
         )
+
+    @staticmethod
+    def async_get_options_flow(
+        config_entry: config_entries.ConfigEntry,
+    ) -> config_entries.OptionsFlow:
+        return PentairRS485OptionsFlow(config_entry)
+
+
+class PentairRS485OptionsFlow(config_entries.OptionsFlow):
+    """Configure pool cover sensor used for speed boost."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        self._config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        if user_input is not None:
+            entity = user_input.get(CONF_COVER_ENTITY)
+            if not entity:
+                entity = None
+            return self.async_create_entry(
+                title="",
+                data={
+                    CONF_COVER_ENTITY: entity,
+                    CONF_COVER_INVERT: bool(
+                        user_input.get(CONF_COVER_INVERT, DEFAULT_COVER_INVERT)
+                    ),
+                },
+            )
+
+        current = self._config_entry.options
+        schema_dict: dict[Any, Any] = {
+            vol.Optional(
+                CONF_COVER_INVERT,
+                default=current.get(CONF_COVER_INVERT, DEFAULT_COVER_INVERT),
+            ): bool,
+        }
+        cover_default = current.get(CONF_COVER_ENTITY)
+        if cover_default:
+            schema_dict[
+                vol.Optional(CONF_COVER_ENTITY, default=cover_default)
+            ] = selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["binary_sensor", "cover", "input_boolean"],
+                    multiple=False,
+                )
+            )
+        else:
+            schema_dict[vol.Optional(CONF_COVER_ENTITY)] = selector.EntitySelector(
+                selector.EntitySelectorConfig(
+                    domain=["binary_sensor", "cover", "input_boolean"],
+                    multiple=False,
+                )
+            )
+
+        return self.async_show_form(step_id="init", data_schema=vol.Schema(schema_dict))
