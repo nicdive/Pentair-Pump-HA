@@ -1,12 +1,16 @@
 {
   "domain": "pentair_rs485",
   "name": "Pentair RS485 Pump",
-  "codeowners": ["@nico"],
+  "codeowners": [
+    "@nico"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/tagyoureit/nodejs-poolController",
   "integration_type": "hub",
   "iot_class": "local_polling",
-  "requirements": ["pyserial>=3.5"],
-  "version": "0.6.2",
+  "requirements": [
+    "pyserial>=3.5"
+  ],
+  "version": "0.6.3",
   "homeassistant": "2024.2.0"
 }

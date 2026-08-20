@@ -4,6 +4,12 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.6.3 — Switch contrôle panneau
+
+- Bouton « Rendre la main » → switch **Contrôle panneau** (persistant)
+- ON = boutons physiques ; OFF = retour contrôle HA (+ reprise consigne si desired_run)
+- Watchdog / commandes HA / boost volet ignorés tant que le switch est ON
+
 ## v0.6.2 — desired_run, USB reconnect, reconfigure
 
 - Arrêt volontaire avant reboot HA → **pas** de redémarrage auto (`desired_run`)

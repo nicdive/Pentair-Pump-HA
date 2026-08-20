@@ -143,6 +143,15 @@ class PentairHub:
     def is_hands_off(self, index: int) -> bool:
         return index in self._hands_off
 
+    def set_hands_off(self, index: int, enabled: bool) -> None:
+        """Memory-only panel-control flag (used on HA state restore)."""
+        if enabled:
+            self._hands_off.add(index)
+            self.set_display_active(index, True)
+        else:
+            self._hands_off.discard(index)
+        _LOGGER.info("Pump %s hands_off=%s", index, enabled)
+
     def set_display_active(self, index: int, active: bool) -> None:
         self._display_active[index] = active
         _LOGGER.info("Pump %s display active set to %s", index, active)
@@ -228,7 +237,13 @@ class PentairHub:
         self._hands_off.discard(index)
 
     async def _run_command(self, index: int, middle: list[bytes]) -> PumpStatus | None:
-        self._resume_remote_control(index)
+        if self.is_hands_off(index):
+            _LOGGER.warning(
+                "Pump %s: panel control active — HA command ignored "
+                "(turn off « panel control » switch first)",
+                index,
+            )
+            return self.get_status(index)
         return await self._run_sequence(
             index, self._wrap_remote_sequence(index, middle)
         )
@@ -283,8 +298,10 @@ class PentairHub:
         """Toggle IntelliComm-style display mode (panel stays active between commands)."""
         self.set_display_active(index, active)
         address = self._address(index)
+        if self.is_hands_off(index):
+            # Panel-control mode owns local/remote; only remember the preference.
+            return self.get_status(index)
         if active:
-            self._hands_off.discard(index)
             return await self._run_sequence(
                 index, [set_local_control(self.app_address, address)]
             )
@@ -296,18 +313,49 @@ class PentairHub:
             ],
         )
 
-    async def async_release_to_pump(self, index: int) -> PumpStatus | None:
-        """Return physical panel control; HA stops grabbing remote until next command."""
-        self._hands_off.add(index)
-        self.set_display_active(index, True)
+    async def async_set_panel_control(
+        self, index: int, enabled: bool
+    ) -> PumpStatus | None:
+        """ON = physical panel owns the pump; OFF = return control to HA."""
         address = self._address(index)
-        _LOGGER.info("Pump %s released to local panel control", index)
-        return await self._run_sequence(
-            index, [set_local_control(self.app_address, address)]
+        if enabled:
+            self._hands_off.add(index)
+            self.set_display_active(index, True)
+            _LOGGER.info("Pump %s panel control ON (hands off HA)", index)
+            return await self._run_sequence(
+                index, [set_local_control(self.app_address, address)]
+            )
+
+        self._hands_off.discard(index)
+        _LOGGER.info("Pump %s panel control OFF (HA remote)", index)
+        status = await self._run_sequence(
+            index,
+            [
+                set_remote_control(self.app_address, address),
+                request_status(self.app_address, address),
+            ],
         )
+        if self.should_run(index):
+            try:
+                await self._async_reapply_setpoint(index)
+            except (OSError, ValueError) as err:
+                _LOGGER.error(
+                    "Pump %s: failed to re-apply HA setpoint after panel control: %s",
+                    index,
+                    err,
+                )
+        elif self.is_display_active(index):
+            await self._run_sequence(
+                index, [set_local_control(self.app_address, address)]
+            )
+        return status
+
+    async def async_release_to_pump(self, index: int) -> PumpStatus | None:
+        """Compatibility alias — prefer async_set_panel_control(True)."""
+        return await self.async_set_panel_control(index, True)
 
     async def async_send_local_control(self, index: int) -> PumpStatus | None:
-        return await self.async_release_to_pump(index)
+        return await self.async_set_panel_control(index, True)
 
     async def async_recover_mode(
         self, index: int, delay: float = DEFAULT_WATCHDOG_RECOVERY_DELAY
@@ -373,9 +421,24 @@ class PentairHub:
         """After HA start: re-apply setpoints only when desired_run was True.
 
         If the pump was stopped on purpose (desired_run False), do nothing.
+        If panel control is active, leave the physical panel alone.
         """
         for pump in self.pumps:
             index = pump.index
+            if self.is_hands_off(index):
+                _LOGGER.info(
+                    "Pump %s panel control active — skip HA auto-resume",
+                    index,
+                )
+                # Re-assert local control after reboot.
+                address = self._address(index)
+                try:
+                    await self._run_sequence(
+                        index, [set_local_control(self.app_address, address)]
+                    )
+                except OSError as err:
+                    _LOGGER.error("Pump %s local control after reboot failed: %s", index, err)
+                continue
             if not self.should_run(index):
                 _LOGGER.info(
                     "Pump %s desired_run=False — skip auto-resume after HA start",

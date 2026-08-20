@@ -58,6 +58,9 @@
       },
       "cover_boost": {
         "name": "Cover boost"
+      },
+      "panel_control": {
+        "name": "Panel control (pump buttons)"
       }
     },
     "number": {
@@ -134,9 +137,6 @@
       },
       "filter_mode": {
         "name": "Filter mode"
-      },
-      "release_remote": {
-        "name": "Release to pump panel"
       },
       "run_program_1": {
         "name": "Run program 1"

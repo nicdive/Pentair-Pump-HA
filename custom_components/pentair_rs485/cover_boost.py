@@ -220,6 +220,11 @@ class CoverBoostController:
                 await self._async_restore(pump.index)
 
     async def _async_apply_boost(self, index: int) -> None:
+        if self.hub.is_hands_off(index):
+            _LOGGER.info(
+                "Cover boost skipped pump %s — panel control active", index
+            )
+            return
         speed = self.get_boost_speed(index)
         if speed is None:
             _LOGGER.warning("Cover boost pump %s: no boost speed set", index)

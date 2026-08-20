@@ -30,7 +30,6 @@ async def async_setup_entry(
                 PentairManualFlowButton(coordinator, idx, entry_id),
                 PentairManualRpmButton(coordinator, idx, entry_id),
                 PentairFilterModeButton(coordinator, idx, entry_id),
-                PentairReleaseRemoteButton(coordinator, idx, entry_id),
                 PentairRunProgramButton(coordinator, idx, 1, entry_id),
                 PentairRunProgramButton(coordinator, idx, 2, entry_id),
                 PentairRunProgramButton(coordinator, idx, 3, entry_id),
@@ -70,16 +69,6 @@ class PentairFilterModeButton(PentairPumpEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         await self.coordinator.hub.async_set_pump_mode(self.pump_index, 0)
-        await self.coordinator.async_request_refresh()
-
-
-class PentairReleaseRemoteButton(PentairPumpEntity, ButtonEntity):
-    _attr_translation_key = "release_remote"
-    _attr_icon = "mdi:gesture-tap-button"
-    _attr_entity_category = EntityCategory.DIAGNOSTIC
-
-    async def async_press(self) -> None:
-        await self.coordinator.hub.async_release_to_pump(self.pump_index)
         await self.coordinator.async_request_refresh()
 
 

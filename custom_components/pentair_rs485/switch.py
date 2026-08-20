@@ -32,6 +32,9 @@ async def async_setup_entry(
             PentairDisplayActiveSwitch(coordinator, pump.index, entry_id)
         )
         entities.append(
+            PentairPanelControlSwitch(coordinator, pump.index, entry_id)
+        )
+        entities.append(
             PentairCoverBoostSwitch(
                 coordinator, cover_boost, pump.index, entry_id
             )
@@ -104,7 +107,7 @@ class PentairDisplayActiveSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity)
         await super().async_added_to_hass()
         last = await self.async_get_last_state()
         if last is not None and last.state == "on":
-            await self.coordinator.hub.async_set_display_active(self.pump_index, True)
+            self.coordinator.hub.set_display_active(self.pump_index, True)
 
     @property
     def is_on(self) -> bool:
@@ -117,6 +120,45 @@ class PentairDisplayActiveSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity)
     async def async_turn_off(self, **kwargs) -> None:
         await self.coordinator.hub.async_set_display_active(self.pump_index, False)
         await self.coordinator.async_request_refresh()
+
+
+class PentairPanelControlSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
+    """ON = physical panel buttons; OFF = Home Assistant remote control.
+
+    Persists across HA reboots. While ON, watchdog / HA commands / cover boost
+    leave the pump alone.
+    """
+
+    _attr_translation_key = "panel_control"
+    _attr_icon = "mdi:gesture-tap-button"
+
+    def __init__(
+        self,
+        coordinator: PentairPumpCoordinator,
+        pump_index: int,
+        entry_id: str,
+    ) -> None:
+        super().__init__(coordinator, pump_index, entry_id)
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is not None and last.state == "on":
+            self.coordinator.hub.set_hands_off(self.pump_index, True)
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.hub.is_hands_off(self.pump_index)
+
+    async def async_turn_on(self, **kwargs) -> None:
+        await self.coordinator.hub.async_set_panel_control(self.pump_index, True)
+        await self.coordinator.async_request_refresh()
+        self.async_write_ha_state()
+
+    async def async_turn_off(self, **kwargs) -> None:
+        await self.coordinator.hub.async_set_panel_control(self.pump_index, False)
+        await self.coordinator.async_request_refresh()
+        self.async_write_ha_state()
 
 
 class PentairCoverBoostSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):

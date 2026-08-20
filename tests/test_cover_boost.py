@@ -30,6 +30,9 @@ class _FakeHub:
         self._gpm = None
         self._status = SimpleNamespace(is_on=True, rpm=1200, gpm=0)
 
+    def is_hands_off(self, index: int) -> bool:
+        return False
+
     def get_command_profile(self, index: int) -> CommandProfile:
         return self._profile
 

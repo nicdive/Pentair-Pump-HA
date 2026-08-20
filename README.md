@@ -4,7 +4,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Current version
 
-**v0.6.2**
+**v0.6.3**
 
 ## Install
 
@@ -26,6 +26,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 - Mode select, programs 1–4, RPM/GPM, cover-open boost
 - Sensors: watts, RPM, GPM, mode, drive, filter %, timer, clock, error
 - Binary sensors: RS485 online, cover boost active
+- **Panel control** switch: ON = physical pump buttons (persisted); OFF = HA remote
 - Reconfigure: port / pumps (integration → ⋮ → Reconfigure)
 - Options: pool cover sensor for boost
 
@@ -36,6 +37,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 - Watchdog restores mode + RPM/GPM after a pump power blip
 - USB RS485 reconnect on I/O failure
 - Cover `unavailable` ignored; boost snapshot restored across HA restart
+- **Panel control** switch persists across reboot; while ON, HA commands / watchdog / cover boost are idle
 
 ## Schedules / temperature curves
 

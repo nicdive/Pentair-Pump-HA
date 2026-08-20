@@ -44,6 +44,9 @@
       },
       "cover_boost": {
         "name": "Boost volet ouvert"
+      },
+      "panel_control": {
+        "name": "Contrôle panneau (boutons pompe)"
       }
     },
     "number": {
@@ -120,9 +123,6 @@
       },
       "filter_mode": {
         "name": "Mode filtre"
-      },
-      "release_remote": {
-        "name": "Rendre la main à la pompe"
       },
       "run_program_1": {
         "name": "Lancer programme 1"
