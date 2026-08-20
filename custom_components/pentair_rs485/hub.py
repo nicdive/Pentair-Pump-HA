@@ -236,13 +236,19 @@ class PentairHub:
     def _resume_remote_control(self, index: int) -> None:
         self._hands_off.discard(index)
 
+    def _panel_blocks(self, index: int, action: str) -> bool:
+        if not self.is_hands_off(index):
+            return False
+        _LOGGER.warning(
+            "Pump %s: panel control active — %s ignored "
+            "(turn off « panel control » switch first)",
+            index,
+            action,
+        )
+        return True
+
     async def _run_command(self, index: int, middle: list[bytes]) -> PumpStatus | None:
-        if self.is_hands_off(index):
-            _LOGGER.warning(
-                "Pump %s: panel control active — HA command ignored "
-                "(turn off « panel control » switch first)",
-                index,
-            )
+        if self._panel_blocks(index, "HA command"):
             return self.get_status(index)
         return await self._run_sequence(
             index, self._wrap_remote_sequence(index, middle)
@@ -253,6 +259,8 @@ class PentairHub:
         return self._store_responses(responses, index)
 
     async def async_set_pump_mode(self, index: int, mode: int) -> PumpStatus | None:
+        if self._panel_blocks(index, "set mode"):
+            return self.get_status(index)
         self.set_target_mode(index, mode)
         if mode == 1:
             self._command_profile[index] = CommandProfile.GPM
@@ -270,6 +278,8 @@ class PentairHub:
 
     async def async_send_manual_mode(self, index: int) -> PumpStatus | None:
         """Wiki action 5 mode 1 = Manual flow (GPM)."""
+        if self._panel_blocks(index, "manual flow"):
+            return self.get_status(index)
         self.set_command_profile(index, CommandProfile.GPM)
         self.set_should_run(index, True)
         address = self._address(index)
@@ -283,6 +293,8 @@ class PentairHub:
 
     async def async_send_speed1_mode(self, index: int) -> PumpStatus | None:
         """Wiki action 5 mode 2 = Manual RPM (packet [5,1,2])."""
+        if self._panel_blocks(index, "manual RPM"):
+            return self.get_status(index)
         self.set_command_profile(index, CommandProfile.RPM)
         self.set_should_run(index, True)
         address = self._address(index)
@@ -360,6 +372,8 @@ class PentairHub:
     async def async_recover_mode(
         self, index: int, delay: float = DEFAULT_WATCHDOG_RECOVERY_DELAY
     ) -> None:
+        if self.is_hands_off(index):
+            return
         if index in self._recovery_in_progress:
             return
         target_mode = self.get_target_mode(index)
@@ -466,6 +480,8 @@ class PentairHub:
         return status
 
     async def async_set_power(self, index: int, power: bool) -> PumpStatus | None:
+        if self._panel_blocks(index, "power"):
+            return self.get_status(index)
         self.set_should_run(index, power)
         address = self._address(index)
         return await self._run_command(
@@ -480,6 +496,8 @@ class PentairHub:
         """Manual RPM mode first, then VS-style RPM packet (VS / VSF / VF)."""
         if not validate_rpm(rpm):
             raise ValueError(f"RPM {rpm} out of range")
+        if self._panel_blocks(index, "set RPM"):
+            return self.get_status(index)
         self.set_command_profile(index, CommandProfile.RPM)
         self.set_target_rpm(index, rpm)
         self.set_should_run(index, True)
@@ -498,6 +516,8 @@ class PentairHub:
         """Manual flow mode first, then VF-style GPM packet (VF / VSF)."""
         if not validate_gpm(gpm):
             raise ValueError(f"GPM {gpm} out of range")
+        if self._panel_blocks(index, "set GPM"):
+            return self.get_status(index)
         self.set_command_profile(index, CommandProfile.GPM)
         self.set_target_gpm(index, gpm)
         self.set_should_run(index, True)
@@ -513,6 +533,8 @@ class PentairHub:
         )
 
     async def async_run_program(self, index: int, program: int) -> PumpStatus | None:
+        if self._panel_blocks(index, "run program"):
+            return self.get_status(index)
         address = self._address(index)
         middle: list[bytes] = [run_program(self.app_address, address, program)]
         if program != 0:
@@ -528,6 +550,8 @@ class PentairHub:
     ) -> PumpStatus | None:
         if not 1 <= program <= 4:
             raise ValueError(f"Invalid program {program}")
+        if self._panel_blocks(index, "save program"):
+            return self.get_status(index)
         profile = self.get_command_profile(index)
         if profile == CommandProfile.GPM and not validate_gpm(speed):
             raise ValueError(f"GPM {speed} out of range")

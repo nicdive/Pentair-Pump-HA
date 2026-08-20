@@ -32,7 +32,9 @@ async def async_setup_entry(
             PentairDisplayActiveSwitch(coordinator, pump.index, entry_id)
         )
         entities.append(
-            PentairPanelControlSwitch(coordinator, pump.index, entry_id)
+            PentairPanelControlSwitch(
+                coordinator, cover_boost, pump.index, entry_id
+            )
         )
         entities.append(
             PentairCoverBoostSwitch(
@@ -135,10 +137,12 @@ class PentairPanelControlSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
     def __init__(
         self,
         coordinator: PentairPumpCoordinator,
+        cover_boost: CoverBoostController,
         pump_index: int,
         entry_id: str,
     ) -> None:
         super().__init__(coordinator, pump_index, entry_id)
+        self._cover_boost = cover_boost
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -157,6 +161,8 @@ class PentairPanelControlSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
 
     async def async_turn_off(self, **kwargs) -> None:
         await self.coordinator.hub.async_set_panel_control(self.pump_index, False)
+        # If cover still open, re-apply boost now that HA owns the pump again.
+        await self._cover_boost.async_reevaluate_pump(self.pump_index)
         await self.coordinator.async_request_refresh()
         self.async_write_ha_state()
 

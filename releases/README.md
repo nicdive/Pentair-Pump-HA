@@ -4,6 +4,12 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.6.4 — Audit robustesse
+
+- Premier poll RS485 **après** restore des entités (plus de vol du panneau au boot)
+- Commandes HA en mode panneau : **aucun** effet de bord (desired_run / consignes inchangés)
+- Restore boost volet différé si contrôle panneau actif ; réévalué à la sortie du mode panneau
+
 ## v0.6.3 — Switch contrôle panneau
 
 - Bouton « Rendre la main » → switch **Contrôle panneau** (persistant)

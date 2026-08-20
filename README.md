@@ -4,7 +4,7 @@ Home Assistant custom integration for standalone **Pentair IntelliFlo** pump con
 
 ## Current version
 
-**v0.6.3**
+**v0.6.4**
 
 ## Install
 

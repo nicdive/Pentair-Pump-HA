@@ -260,6 +260,12 @@ class CoverBoostController:
             _LOGGER.error("Cover boost failed pump %s: %s", index, err)
 
     async def _async_restore(self, index: int) -> None:
+        if self.hub.is_hands_off(index):
+            _LOGGER.info(
+                "Cover boost restore deferred pump %s — panel control active",
+                index,
+            )
+            return
         snap = self._snapshot.pop(index, None)
         self._active[index] = False
         if snap is None:
