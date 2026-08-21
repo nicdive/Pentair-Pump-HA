@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import asdict, dataclass
 from typing import TYPE_CHECKING, Any
@@ -25,6 +26,7 @@ _STATE_UNAVAILABLE = "unavailable"
 _STATE_UNKNOWN = "unknown"
 _OPEN_STATES = {_STATE_ON, _STATE_OPEN, _STATE_OPENING}
 _IGNORE_STATES = {_STATE_UNAVAILABLE, _STATE_UNKNOWN, None, ""}
+_COVER_DEBOUNCE_S = 1.5
 
 
 @dataclass
@@ -83,6 +85,7 @@ class CoverBoostController:
         self._snapshot: dict[int, BoostSnapshot] = {}
         self._cover_open: bool | None = None
         self._entities_ready = False
+        self._debounce_handle = None
 
     def mark_entities_ready(self) -> None:
         """Entities have restored their last states; safe to act on cover."""
@@ -150,6 +153,9 @@ class CoverBoostController:
         await self._async_handle_cover_state(state.state, force=True)
 
     async def async_shutdown(self) -> None:
+        if self._debounce_handle is not None:
+            self._debounce_handle.cancel()
+            self._debounce_handle = None
         if self._unsub:
             self._unsub()
             self._unsub = None
@@ -158,12 +164,27 @@ class CoverBoostController:
         new_state = event.data.get("new_state")
         if new_state is None:
             return
-        self.hass.async_create_task(self._async_handle_cover_state(new_state.state))
+        if self._debounce_handle is not None:
+            self._debounce_handle.cancel()
+        self._debounce_handle = self.hass.async_create_task(
+            self._async_debounced_cover(new_state.state)
+        )
+
+    async def _async_debounced_cover(self, state: str) -> None:
+        try:
+            await asyncio.sleep(_COVER_DEBOUNCE_S)
+            await self._async_handle_cover_state(state)
+        except asyncio.CancelledError:
+            return
 
     def _raw_is_open(self, state: str) -> bool | None:
         if state in _IGNORE_STATES:
             return None
-        open_ = state in _OPEN_STATES
+        # Keep boost applied while the cover is still moving closed.
+        if state == "closing":
+            open_ = True
+        else:
+            open_ = state in _OPEN_STATES
         return (not open_) if self.cover_invert else open_
 
     async def _async_handle_cover_state(
@@ -246,14 +267,18 @@ class CoverBoostController:
             self._snapshot[index] = BoostSnapshot(
                 profile=prev_profile.value,
                 speed=prev_speed,
-                was_on=bool(status and status.is_on),
+                was_on=bool(self.hub.should_run(index) or (status and status.is_on)),
             )
         _LOGGER.info("Cover boost pump %s → %s %s", index, speed, profile.value)
         try:
             if profile == CommandProfile.GPM:
-                await self.hub.async_run_gpm(index, speed)
+                await self.hub.async_run_gpm(
+                    index, speed, update_target=False, update_should_run=False
+                )
             else:
-                await self.hub.async_run_rpm(index, speed)
+                await self.hub.async_run_rpm(
+                    index, speed, update_target=False, update_should_run=False
+                )
             self._active[index] = True
             await self.coordinator.async_request_refresh()
         except (OSError, ValueError) as err:
@@ -278,13 +303,22 @@ class CoverBoostController:
             snap.was_on,
         )
         try:
-            if snap.speed is not None:
+            if not snap.was_on:
+                # Boost may have started a stopped pump — put it back to off and
+                # restore the in-memory setpoint without sending a run command.
+                if snap.speed is not None:
+                    if snap.command_profile == CommandProfile.GPM:
+                        self.hub.set_target_gpm(index, snap.speed)
+                        self.hub.set_command_profile(index, CommandProfile.GPM)
+                    else:
+                        self.hub.set_target_rpm(index, snap.speed)
+                        self.hub.set_command_profile(index, CommandProfile.RPM)
+                await self.hub.async_set_power(index, False)
+            elif snap.speed is not None:
                 if snap.command_profile == CommandProfile.GPM:
                     await self.hub.async_run_gpm(index, snap.speed)
                 else:
                     await self.hub.async_run_rpm(index, snap.speed)
-            elif not snap.was_on:
-                await self.hub.async_set_power(index, False)
             await self.coordinator.async_request_refresh()
         except (OSError, ValueError) as err:
             _LOGGER.error("Cover boost restore failed pump %s: %s", index, err)

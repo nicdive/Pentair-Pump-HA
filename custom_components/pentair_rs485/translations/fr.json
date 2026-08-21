@@ -28,7 +28,8 @@
       }
     },
     "error": {
-      "pump_exists": "Une pompe avec cet index est déjà configurée."
+      "pump_exists": "Une pompe avec cet index est déjà configurée.",
+      "cannot_connect": "Impossible d'ouvrir le port série. Vérifiez le chemin, le câble USB et les droits (groupe dialout)."
     },
     "abort": {
       "reconfigure_successful": "Reconfiguration réussie"
@@ -111,7 +112,16 @@
         "name": "Horloge pompe"
       },
       "error": {
-        "name": "Erreur"
+        "name": "Erreur",
+        "state": {
+          "ok": "OK",
+          "motor_overload": "Surcharge moteur",
+          "filter_error": "Erreur filtre",
+          "prime_failed": "Amorçage échoué",
+          "overheat": "Surchauffe",
+          "power_outage": "Coupure secteur",
+          "drive_failure": "Défaut variateur"
+        }
       }
     },
     "button": {
@@ -188,6 +198,9 @@
       "bus_online": {
         "name": "RS485 en ligne"
       },
+      "pump_online": {
+        "name": "Pompe en ligne"
+      },
       "cover_boost_active": {
         "name": "Boost volet actif"
       }
@@ -197,10 +210,11 @@
     "step": {
       "init": {
         "title": "Boost à l’ouverture du volet",
-        "description": "Choisir le capteur volet / binary_sensor. À l’ouverture, la pompe passe à la consigne boost si le switch est activé.",
+        "description": "Choisir le capteur volet / binary_sensor. À l’ouverture, la pompe passe à la consigne boost si le switch est activé. L’intervalle de poll s’applique aux lectures RS485.",
         "data": {
           "cover_entity_id": "Capteur volet / store",
-          "cover_invert": "Inverser (on = fermé)"
+          "cover_invert": "Inverser (on = fermé)",
+          "scan_interval": "Intervalle de poll RS485 (secondes)"
         }
       }
     }

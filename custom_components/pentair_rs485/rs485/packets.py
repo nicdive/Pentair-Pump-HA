@@ -132,3 +132,8 @@ class PumpStatus:
     @property
     def is_on(self) -> bool:
         return self.run == 10 or self.rpm > 0 or self.gpm > 0
+
+    @property
+    def is_priming(self) -> bool:
+        """Drive states 1 (priming) and 4 (system priming)."""
+        return self.drivestate in (1, 4)

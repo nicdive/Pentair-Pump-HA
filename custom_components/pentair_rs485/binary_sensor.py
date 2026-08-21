@@ -32,6 +32,9 @@ async def async_setup_entry(
     ]
     for pump in coordinator.hub.pumps:
         entities.append(
+            PentairPumpOnlineBinarySensor(coordinator, pump.index, entry_id)
+        )
+        entities.append(
             PentairCoverBoostActiveBinarySensor(
                 coordinator, cover_boost, pump.index, entry_id
             )
@@ -63,10 +66,30 @@ class PentairBusOnlineBinarySensor(BinarySensorEntity):
         bus = self.coordinator.hub.bus
         return bus.is_open and bus.last_error is None
 
+    @property
+    def extra_state_attributes(self) -> dict:
+        bus = self.coordinator.hub.bus
+        return {
+            "port": bus.port,
+            "last_error": bus.last_error,
+        }
+
     async def async_added_to_hass(self) -> None:
         self.async_on_remove(
             self.coordinator.async_add_listener(self.async_write_ha_state)
         )
+
+
+class PentairPumpOnlineBinarySensor(PentairPumpEntity, BinarySensorEntity):
+    """True when this pump recently answered a status poll."""
+
+    _attr_translation_key = "pump_online"
+    _attr_device_class = BinarySensorDeviceClass.CONNECTIVITY
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    @property
+    def is_on(self) -> bool:
+        return self.coordinator.hub.is_pump_online(self.pump_index)
 
 
 class PentairCoverBoostActiveBinarySensor(PentairPumpEntity, BinarySensorEntity):

@@ -19,7 +19,7 @@ class _RecordingBus:
     async def async_close(self) -> None:
         return None
 
-    async def async_send_sequence(self, packets):
+    async def async_send_sequence(self, packets, **_kwargs):
         self.sequences.append(list(packets))
         return []
 

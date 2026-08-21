@@ -38,7 +38,7 @@ class _RecordingBus:
     async def async_reconnect(self) -> None:
         self.reconnect_calls += 1
 
-    async def async_send_sequence(self, packets):
+    async def async_send_sequence(self, packets, **_kwargs):
         self.sequences.append(list(packets))
         return []
 

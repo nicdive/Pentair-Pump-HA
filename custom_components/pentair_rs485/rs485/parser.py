@@ -37,16 +37,29 @@ def verify_checksum(frame: list[int]) -> bool:
 
 
 def extract_frames(buffer: bytearray) -> tuple[list[list[int]], bytearray]:
-    """Extract complete pump frames from a serial read buffer."""
+    """Extract complete pump frames from a serial read buffer.
+
+    Wire format is ``FF 00 FF A5 …``. We lock onto the last preamble ``FF``
+    followed by header ``A5``. A bogus length byte is rejected so we do not
+    skip hundreds of bytes of real traffic.
+    """
     frames: list[list[int]] = []
     i = 0
     while i < len(buffer):
         if i + 1 < len(buffer) and buffer[i] == 255 and buffer[i + 1] == 165:
             if i + 7 > len(buffer):
                 break
-            # Matches nodejs-poolController receive-buffer.js:
-            # chatterlen = buffer[6] + 6 + 2 (bytes starting at 165)
+            # Length lives at A5+5 = buffer[i+6] (i points at the FF before A5).
             payload_len = buffer[i + 6]
+            # Status replies are ~15 bytes; commands are tiny. Cap runaway lengths.
+            if payload_len > 64:
+                _LOGGER.debug(
+                    "RS485 implausible payload length %s at offset %s, skipping byte",
+                    payload_len,
+                    i,
+                )
+                i += 1
+                continue
             frame_len = payload_len + 6 + 2
             if i + 1 + frame_len > len(buffer):
                 break

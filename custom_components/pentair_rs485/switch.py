@@ -78,6 +78,7 @@ class PentairPumpPowerSwitch(PentairPumpEntity, SwitchEntity, RestoreEntity):
     def extra_state_attributes(self) -> dict:
         return {
             ATTR_DESIRED_RUN: self.coordinator.hub.should_run(self.pump_index),
+            "online": self.coordinator.hub.is_pump_online(self.pump_index),
         }
 
     async def async_turn_on(self, **kwargs) -> None:

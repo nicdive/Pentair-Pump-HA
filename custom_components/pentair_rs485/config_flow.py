@@ -19,20 +19,75 @@ from .const import (
     CONF_PUMP_NAME,
     CONF_PUMP_TYPE,
     CONF_PUMPS,
+    CONF_SCAN_INTERVAL,
     DEFAULT_APP_ADDRESS,
     DEFAULT_COVER_INVERT,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
+    MAX_SCAN_INTERVAL,
+    MIN_SCAN_INTERVAL,
     PUMP_TYPES,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_SCHEMA = vol.Schema(
-    {
-        vol.Required(CONF_PORT): str,
-        vol.Optional(CONF_APP_ADDRESS, default=DEFAULT_APP_ADDRESS): cv.positive_int,
-    }
-)
+
+def _list_serial_ports() -> list[str]:
+    import glob
+
+    paths: list[str] = []
+    for pattern in (
+        "/dev/serial/by-id/*",
+        "/dev/ttyUSB*",
+        "/dev/ttyACM*",
+        "/dev/ttyAMA*",
+    ):
+        paths.extend(sorted(glob.glob(pattern)))
+    unique: list[str] = []
+    for path in paths:
+        if path not in unique:
+            unique.append(path)
+    return unique
+
+
+def _port_schema(
+    default: str | None = None, app_address: int = DEFAULT_APP_ADDRESS
+) -> vol.Schema:
+    ports = _list_serial_ports()
+    if ports:
+        port_field: Any = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=ports,
+                custom_value=True,
+                mode=selector.SelectSelectorMode.DROPDOWN,
+            )
+        )
+        port_default = default if default else ports[0]
+        schema: dict[Any, Any] = {
+            vol.Required(CONF_PORT, default=port_default): port_field,
+        }
+    else:
+        schema = {
+            vol.Required(CONF_PORT, default=default or "/dev/ttyUSB0"): str,
+        }
+    schema[vol.Optional(CONF_APP_ADDRESS, default=app_address)] = cv.positive_int
+    return vol.Schema(schema)
+
+
+async def _async_test_port(hass, port: str) -> str | None:
+    """Return an error string if the serial port cannot be opened."""
+
+    def _try_open() -> str | None:
+        try:
+            import serial
+
+            ser = serial.Serial(port, 9600, timeout=0.2, write_timeout=1)
+            ser.close()
+            return None
+        except Exception as err:  # noqa: BLE001 — surface any serial open failure
+            return str(err)
+
+    return await hass.async_add_executor_job(_try_open)
 
 
 def _pump_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
@@ -63,6 +118,14 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.ConfigFlowResult:
         if user_input is not None:
             port = user_input[CONF_PORT]
+            error = await _async_test_port(self.hass, port)
+            if error:
+                _LOGGER.warning("Cannot open RS485 port %s: %s", port, error)
+                return self.async_show_form(
+                    step_id="user",
+                    data_schema=_port_schema(port),
+                    errors={"base": "cannot_connect"},
+                )
             await self.async_set_unique_id(port)
             self._abort_if_unique_id_configured()
 
@@ -71,7 +134,7 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.context["pumps"] = []
             return await self.async_step_pump()
 
-        return self.async_show_form(step_id="user", data_schema=STEP_USER_SCHEMA)
+        return self.async_show_form(step_id="user", data_schema=_port_schema())
 
     async def async_step_pump(
         self, user_input: dict[str, Any] | None = None
@@ -115,6 +178,17 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             port = user_input[CONF_PORT]
+            error = await _async_test_port(self.hass, port)
+            if error:
+                _LOGGER.warning("Cannot open RS485 port %s: %s", port, error)
+                return self.async_show_form(
+                    step_id="reconfigure",
+                    data_schema=_port_schema(
+                        port,
+                        user_input.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
+                    ),
+                    errors={"base": "cannot_connect"},
+                )
             await self.async_set_unique_id(port)
             self.context["port"] = port
             self.context["app_address"] = user_input[CONF_APP_ADDRESS]
@@ -123,16 +197,9 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_PORT, default=entry.data.get(CONF_PORT, "")
-                    ): str,
-                    vol.Optional(
-                        CONF_APP_ADDRESS,
-                        default=entry.data.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
-                    ): cv.positive_int,
-                }
+            data_schema=_port_schema(
+                entry.data.get(CONF_PORT),
+                entry.data.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
             ),
         )
 
@@ -204,11 +271,21 @@ class PentairRS485OptionsFlow(config_entries.OptionsFlow):
                     CONF_COVER_INVERT: bool(
                         user_input.get(CONF_COVER_INVERT, DEFAULT_COVER_INVERT)
                     ),
+                    CONF_SCAN_INTERVAL: int(
+                        user_input.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+                    ),
                 },
             )
 
         current = self._config_entry.options
         schema_dict: dict[Any, Any] = {
+            vol.Optional(
+                CONF_SCAN_INTERVAL,
+                default=current.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL),
+            ): vol.All(
+                cv.positive_int,
+                vol.Range(min=MIN_SCAN_INTERVAL, max=MAX_SCAN_INTERVAL),
+            ),
             vol.Optional(
                 CONF_COVER_INVERT,
                 default=current.get(CONF_COVER_INVERT, DEFAULT_COVER_INVERT),

@@ -55,6 +55,7 @@ class PentairPumpWattsSensor(PentairPumpEntity, SensorEntity):
     _attr_native_unit_of_measurement = "W"
     _attr_device_class = SensorDeviceClass.POWER
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _require_online = True
 
     @property
     def native_value(self) -> int | None:
@@ -65,6 +66,15 @@ class PentairPumpRpmSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "rpm_reading"
     _attr_native_unit_of_measurement = "rpm"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _require_online = True
+
+    @property
+    def native_value(self) -> int | None:
+        return self.pump_data.get("rpm")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.pump_data.get("supports_rpm", True))
 
     @property
     def native_value(self) -> int | None:
@@ -75,6 +85,15 @@ class PentairPumpGpmSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "gpm_reading"
     _attr_native_unit_of_measurement = "gpm"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _require_online = True
+
+    @property
+    def native_value(self) -> int | None:
+        return self.pump_data.get("gpm")
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.pump_data.get("supports_gpm", True))
 
     @property
     def native_value(self) -> int | None:
@@ -85,6 +104,7 @@ class PentairPumpModeSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "mode"
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(PUMP_MODE_LABELS.keys())
+    _require_online = True
 
     @property
     def native_value(self) -> str | None:
@@ -96,6 +116,7 @@ class PentairPumpDriveStateSensor(PentairPumpEntity, SensorEntity):
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(DRIVE_STATE_LABELS.keys()) + ["unknown_3", "unknown_5"]
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _require_online = True
 
     @property
     def native_value(self) -> str | None:
@@ -106,6 +127,7 @@ class PentairPumpPpcSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "ppc"
     _attr_native_unit_of_measurement = "%"
     _attr_state_class = SensorStateClass.MEASUREMENT
+    _require_online = True
 
     @property
     def native_value(self) -> int | None:
@@ -116,6 +138,7 @@ class PentairPumpTimerSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "timer"
     _attr_native_unit_of_measurement = "min"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _require_online = True
 
     @property
     def native_value(self) -> int | None:
@@ -126,6 +149,7 @@ class PentairPumpClockSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "clock"
     _attr_icon = "mdi:clock-outline"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    _require_online = True
 
     @property
     def native_value(self) -> str | None:
@@ -138,6 +162,7 @@ class PentairPumpErrorSensor(PentairPumpEntity, SensorEntity):
     _attr_translation_key = "error"
     _attr_device_class = SensorDeviceClass.ENUM
     _attr_options = list(PUMP_ERROR_LABELS.keys())
+    _require_online = True
 
     @property
     def native_value(self) -> str | None:

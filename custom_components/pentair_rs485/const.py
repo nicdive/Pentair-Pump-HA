@@ -9,26 +9,40 @@ CONF_PUMP_TYPE = "pump_type"
 CONF_PUMP_NAME = "pump_name"
 CONF_COVER_ENTITY = "cover_entity_id"
 CONF_COVER_INVERT = "cover_invert"
+CONF_SCAN_INTERVAL = "scan_interval"
 
 DEFAULT_APP_ADDRESS = 33
 DEFAULT_BAUD_RATE = 9600
 DEFAULT_SCAN_INTERVAL = 30
+MIN_SCAN_INTERVAL = 10
+MAX_SCAN_INTERVAL = 120
 DEFAULT_COVER_INVERT = False
 DEFAULT_COVER_BOOST_RPM = 2000
 DEFAULT_COVER_BOOST_GPM = 60
 
 DEFAULT_WATCHDOG_ENABLED = True
 DEFAULT_WATCHDOG_TOLERANCE = 100
+DEFAULT_WATCHDOG_GPM_TOLERANCE = 5
 DEFAULT_WATCHDOG_RECOVERY_DELAY = 15
+
+# Missed polls before a pump is considered offline (status is kept, just marked stale).
+STALE_POLL_MISSES = 3
 
 PUMP_TYPES = ("VS", "VF", "VSF")
 
 ATTR_PUMP_INDEX = "pump_index"
 ATTR_PROGRAM = "program"
 ATTR_DESIRED_RUN = "desired_run"
+ATTR_ONLINE = "online"
+ATTR_SPEED = "speed"
+ATTR_RPM = "rpm"
+ATTR_GPM = "gpm"
+ATTR_POWER = "power"
 
 SERVICE_RUN_PROGRAM = "run_program"
 SERVICE_SAVE_PROGRAM = "save_program"
+SERVICE_SET_SPEED = "set_speed"
+SERVICE_SET_POWER = "set_power"
 
 MIN_RPM = 450
 MAX_RPM = 3450

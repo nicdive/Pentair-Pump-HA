@@ -53,12 +53,22 @@ DRIVE_STATE_LABELS: dict[str, str] = {
 
 PUMP_ERRORS: dict[int, str] = {
     0: "ok",
+    1: "motor_overload",
     2: "filter_error",
+    3: "prime_failed",
+    4: "overheat",
+    5: "power_outage",
+    6: "drive_failure",
 }
 
 PUMP_ERROR_LABELS: dict[str, str] = {
     "ok": "OK",
+    "motor_overload": "Motor overload",
     "filter_error": "Filter error",
+    "prime_failed": "Prime failed",
+    "overheat": "Overheat",
+    "power_outage": "Power outage",
+    "drive_failure": "Drive failure",
 }
 
 

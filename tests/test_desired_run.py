@@ -17,7 +17,7 @@ class _FakeBus:
     async def async_close(self) -> None:
         return None
 
-    async def async_send_sequence(self, packets):
+    async def async_send_sequence(self, packets, **_kwargs):
         return []
 
 
@@ -25,7 +25,7 @@ class _RecordingBus(_FakeBus):
     def __init__(self) -> None:
         self.sequences: list[list[bytes]] = []
 
-    async def async_send_sequence(self, packets):
+    async def async_send_sequence(self, packets, **_kwargs):
         self.sequences.append(list(packets))
         return []
 

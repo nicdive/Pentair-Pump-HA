@@ -6,7 +6,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from .const import DEFAULT_WATCHDOG_RECOVERY_DELAY
+from .const import DEFAULT_WATCHDOG_RECOVERY_DELAY, STALE_POLL_MISSES
 from .rs485.bus import RS485Bus
 from .rs485.modes import decode_drivestate, decode_error, decode_mode
 from .rs485.packets import (
@@ -62,15 +62,39 @@ class PentairHub:
     _hands_off: set[int] = field(default_factory=set)
     _saved_program: dict[tuple[int, int], int] = field(default_factory=dict)
     _recovery_in_progress: set[int] = field(default_factory=set)
+    _poll_misses: dict[int, int] = field(default_factory=dict)
+    _online: dict[int, bool] = field(default_factory=dict)
 
     async def async_setup(self) -> None:
-        await self.bus.async_open()
+        try:
+            await self.bus.async_open()
+        except OSError as err:
+            _LOGGER.error("RS485 port %s could not be opened: %s", self.bus.port, err)
         for pump in self.pumps:
             if pump.index not in self._command_profile:
                 self._command_profile[pump.index] = _default_profile(pump.pump_type)
 
     async def async_shutdown(self) -> None:
+        self._recovery_in_progress.clear()
         await self.bus.async_close()
+
+    def get_pump(self, index: int) -> PumpConfig | None:
+        return next((p for p in self.pumps if p.index == index), None)
+
+    def supports_rpm(self, index: int) -> bool:
+        pump = self.get_pump(index)
+        if pump is None:
+            return True
+        return pump.pump_type in (PumpType.VS, PumpType.VSF)
+
+    def supports_gpm(self, index: int) -> bool:
+        pump = self.get_pump(index)
+        if pump is None:
+            return True
+        return pump.pump_type in (PumpType.VF, PumpType.VSF)
+
+    def is_pump_online(self, index: int) -> bool:
+        return self._online.get(index, False)
 
     def get_status(self, index: int) -> PumpStatus | None:
         return self._status.get(index)
@@ -161,65 +185,69 @@ class PentairHub:
 
     def status_dict(self, index: int, pump: PumpConfig) -> dict:
         status = self.get_status(index)
-        if not status:
-            return {
-                "name": pump.name,
-                "type": pump.pump_type.value,
-                "display_active": self.is_display_active(index),
-                "hands_off": self.is_hands_off(index),
-                "power": False,
-                "rpm": 0,
-                "gpm": 0,
-                "watts": 0,
-                "err": 0,
-                "err_label": "ok",
-                "mode": 0,
-                "mode_label": "filter",
-                "target_mode": None,
-                "target_mode_label": None,
-                "command_profile": self.get_command_profile(index).value,
-                "program_1_speed": self.get_saved_program_speed(index, 1),
-                "program_2_speed": self.get_saved_program_speed(index, 2),
-                "program_3_speed": self.get_saved_program_speed(index, 3),
-                "program_4_speed": self.get_saved_program_speed(index, 4),
-                "drivestate": 0,
-                "drivestate_label": "fault",
-                "ppc": 0,
-                "timer": 0,
-                "hour": 0,
-                "minute": 0,
-            }
-        return {
+        online = self.is_pump_online(index)
+        base = {
             "name": pump.name,
             "type": pump.pump_type.value,
             "display_active": self.is_display_active(index),
             "hands_off": self.is_hands_off(index),
-            "power": status.is_on,
-            "rpm": status.rpm,
-            "gpm": status.gpm,
-            "watts": status.watts,
-            "err": status.err,
-            "err_label": decode_error(status.err),
-            "mode": status.mode,
-            "mode_label": decode_mode(status.mode),
+            "desired_run": self.should_run(index),
+            "online": online,
+            "supports_rpm": self.supports_rpm(index),
+            "supports_gpm": self.supports_gpm(index),
+            "command_profile": self.get_command_profile(index).value,
+            "program_1_speed": self.get_saved_program_speed(index, 1),
+            "program_2_speed": self.get_saved_program_speed(index, 2),
+            "program_3_speed": self.get_saved_program_speed(index, 3),
+            "program_4_speed": self.get_saved_program_speed(index, 4),
             "target_mode": self.get_target_mode(index),
             "target_mode_label": (
                 decode_mode(self.get_target_mode(index))
                 if self.get_target_mode(index) is not None
                 else None
             ),
-            "command_profile": self.get_command_profile(index).value,
-            "program_1_speed": self.get_saved_program_speed(index, 1),
-            "program_2_speed": self.get_saved_program_speed(index, 2),
-            "program_3_speed": self.get_saved_program_speed(index, 3),
-            "program_4_speed": self.get_saved_program_speed(index, 4),
-            "drivestate": status.drivestate,
-            "drivestate_label": decode_drivestate(status.drivestate),
-            "ppc": status.ppc,
-            "timer": status.timer,
-            "hour": status.hour,
-            "minute": status.minute,
+            "target_rpm": self.get_target_rpm(index),
+            "target_gpm": self.get_target_gpm(index),
         }
+        if not status:
+            base.update(
+                {
+                    "power": False,
+                    "rpm": 0,
+                    "gpm": 0,
+                    "watts": 0,
+                    "err": 0,
+                    "err_label": "ok",
+                    "mode": 0,
+                    "mode_label": "filter",
+                    "drivestate": 0,
+                    "drivestate_label": "fault",
+                    "ppc": 0,
+                    "timer": 0,
+                    "hour": 0,
+                    "minute": 0,
+                }
+            )
+            return base
+        base.update(
+            {
+                "power": status.is_on,
+                "rpm": status.rpm,
+                "gpm": status.gpm,
+                "watts": status.watts,
+                "err": status.err,
+                "err_label": decode_error(status.err),
+                "mode": status.mode,
+                "mode_label": decode_mode(status.mode),
+                "drivestate": status.drivestate,
+                "drivestate_label": decode_drivestate(status.drivestate),
+                "ppc": status.ppc,
+                "timer": status.timer,
+                "hour": status.hour,
+                "minute": status.minute,
+            }
+        )
+        return base
 
     def _address(self, index: int) -> int:
         return pump_index_to_address(index)
@@ -255,8 +283,15 @@ class PentairHub:
         )
 
     async def _run_sequence(self, index: int, packets: list[bytes]) -> PumpStatus | None:
-        responses = await self.bus.async_send_sequence(packets)
-        return self._store_responses(responses, index)
+        expects_status = any(_packet_is_status_request(packet) for packet in packets)
+        responses = await self.bus.async_send_sequence(
+            packets,
+            expect_index=index if expects_status else None,
+            wait_status=expects_status,
+        )
+        return self._store_responses(
+            responses, index, count_miss=expects_status
+        )
 
     async def async_set_pump_mode(self, index: int, mode: int) -> PumpStatus | None:
         if self._panel_blocks(index, "set mode"):
@@ -398,17 +433,20 @@ class PentairHub:
         finally:
             self._recovery_in_progress.discard(index)
 
-    async def _async_reapply_setpoint(self, index: int) -> None:
+    async def _async_reapply_setpoint(self, index: int) -> PumpStatus | None:
         """Re-send last RPM/GPM after power loss (mode alone is not enough)."""
         profile = self.get_command_profile(index)
         if profile == CommandProfile.GPM:
             gpm = self.get_target_gpm(index)
             if gpm is not None:
-                await self.async_run_gpm(index, gpm)
-                return
+                return await self.async_run_gpm(index, gpm)
         rpm = self.get_target_rpm(index)
         if rpm is not None:
-            await self.async_run_rpm(index, rpm)
+            return await self.async_run_rpm(index, rpm)
+        gpm = self.get_target_gpm(index)
+        if gpm is not None:
+            return await self.async_run_gpm(index, gpm)
+        return None
 
     def seed_runtime_from_status(self, index: int) -> None:
         """If desired_run is set, adopt live mode/speed for watchdog continuity.
@@ -483,6 +521,14 @@ class PentairHub:
         if self._panel_blocks(index, "power"):
             return self.get_status(index)
         self.set_should_run(index, power)
+        if power and (
+            self.get_target_rpm(index) is not None
+            or self.get_target_gpm(index) is not None
+        ):
+            try:
+                return await self._async_reapply_setpoint(index)
+            except ValueError:
+                pass
         address = self._address(index)
         return await self._run_command(
             index,
@@ -492,15 +538,24 @@ class PentairHub:
             ],
         )
 
-    async def async_run_rpm(self, index: int, rpm: int) -> PumpStatus | None:
+    async def async_run_rpm(
+        self,
+        index: int,
+        rpm: int,
+        *,
+        update_target: bool = True,
+        update_should_run: bool = True,
+    ) -> PumpStatus | None:
         """Manual RPM mode first, then VS-style RPM packet (VS / VSF / VF)."""
         if not validate_rpm(rpm):
             raise ValueError(f"RPM {rpm} out of range")
         if self._panel_blocks(index, "set RPM"):
             return self.get_status(index)
-        self.set_command_profile(index, CommandProfile.RPM)
-        self.set_target_rpm(index, rpm)
-        self.set_should_run(index, True)
+        if update_target:
+            self.set_command_profile(index, CommandProfile.RPM)
+            self.set_target_rpm(index, rpm)
+        if update_should_run:
+            self.set_should_run(index, True)
         address = self._address(index)
         return await self._run_command(
             index,
@@ -512,15 +567,24 @@ class PentairHub:
             ],
         )
 
-    async def async_run_gpm(self, index: int, gpm: int) -> PumpStatus | None:
+    async def async_run_gpm(
+        self,
+        index: int,
+        gpm: int,
+        *,
+        update_target: bool = True,
+        update_should_run: bool = True,
+    ) -> PumpStatus | None:
         """Manual flow mode first, then VF-style GPM packet (VF / VSF)."""
         if not validate_gpm(gpm):
             raise ValueError(f"GPM {gpm} out of range")
         if self._panel_blocks(index, "set GPM"):
             return self.get_status(index)
-        self.set_command_profile(index, CommandProfile.GPM)
-        self.set_target_gpm(index, gpm)
-        self.set_should_run(index, True)
+        if update_target:
+            self.set_command_profile(index, CommandProfile.GPM)
+            self.set_target_gpm(index, gpm)
+        if update_should_run:
+            self.set_should_run(index, True)
         address = self._address(index)
         return await self._run_command(
             index,
@@ -542,6 +606,11 @@ class PentairHub:
             status = self.get_status(index)
             if not status or not status.is_on:
                 middle.insert(0, set_power(self.app_address, address, True))
+        else:
+            # Stop program is documented as a way to stop the pump: clear the
+            # persisted intent so a HA restart does not auto-resume.
+            self.set_should_run(index, False)
+            middle.append(set_power(self.app_address, address, False))
         middle.append(request_status(self.app_address, address))
         return await self._run_command(index, middle)
 
@@ -573,9 +642,40 @@ class PentairHub:
             if not self.is_hands_off(pump.index):
                 await self.async_request_status(pump.index)
 
+    def _note_hit(self, index: int) -> None:
+        self._poll_misses[index] = 0
+        self._online[index] = True
+
+    def _note_miss(self, index: int) -> None:
+        misses = self._poll_misses.get(index, 0) + 1
+        self._poll_misses[index] = misses
+        if misses >= STALE_POLL_MISSES:
+            if self._online.get(index):
+                _LOGGER.warning(
+                    "Pump %s: no RS485 status for %s polls — marking offline",
+                    index,
+                    misses,
+                )
+            self._online[index] = False
+
     def _store_responses(
-        self, responses: list[PumpStatus], index: int
+        self,
+        responses: list[PumpStatus],
+        index: int,
+        *,
+        count_miss: bool = False,
     ) -> PumpStatus | None:
+        found: PumpStatus | None = None
         for status in responses:
             self._status[status.index] = status
-        return self._status.get(index)
+            self._note_hit(status.index)
+            if status.index == index:
+                found = status
+        if found is None and count_miss:
+            self._note_miss(index)
+        return found
+
+
+def _packet_is_status_request(packet: bytes) -> bool:
+    """True if this outbound frame is an action-7 status poll."""
+    return len(packet) >= 9 and list(packet)[7:9] == [7, 0]

@@ -29,7 +29,8 @@
       }
     },
     "error": {
-      "pump_exists": "A pump with this index is already configured."
+      "pump_exists": "A pump with this index is already configured.",
+      "cannot_connect": "Could not open the serial port. Check the path, USB cable, and permissions (dialout)."
     },
     "abort": {
       "already_configured": "This port is already configured.",
@@ -113,7 +114,16 @@
         "name": "Pump clock"
       },
       "error": {
-        "name": "Error"
+        "name": "Error",
+        "state": {
+          "ok": "OK",
+          "motor_overload": "Motor overload",
+          "filter_error": "Filter error",
+          "prime_failed": "Prime failed",
+          "overheat": "Overheat",
+          "power_outage": "Power outage",
+          "drive_failure": "Drive failure"
+        }
       }
     },
     "button": {
@@ -190,6 +200,9 @@
       "bus_online": {
         "name": "RS485 online"
       },
+      "pump_online": {
+        "name": "Pump online"
+      },
       "cover_boost_active": {
         "name": "Cover boost active"
       }
@@ -199,10 +212,11 @@
     "step": {
       "init": {
         "title": "Pool cover boost",
-        "description": "Pick the cover / binary sensor that raises pump speed when the cover opens. Leave empty to disable.",
+        "description": "Pick the cover / binary sensor that raises pump speed when the cover opens. Leave empty to disable. Poll interval applies to RS485 status reads.",
         "data": {
           "cover_entity_id": "Cover / shutter sensor",
-          "cover_invert": "Invert (on = closed)"
+          "cover_invert": "Invert (on = closed)",
+          "scan_interval": "RS485 poll interval (seconds)"
         }
       }
     }

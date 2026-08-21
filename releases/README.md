@@ -4,6 +4,16 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.7.0 — Fiabilité bus, watchdog, boost, usage
+
+- Poll : attendre la pompe demandée ; offline après 3 misses ; thread série dédié
+- Setup HA même si USB absent ; capteurs live `unavailable` si pompe muette
+- Stop programme → `desired_run=false` ; Marche ON ré-applique la consigne
+- Boost volet : consigne utilisateur préservée ; restore `was_on` ; debounce ; `closing` ≠ fermé
+- Watchdog : dérive RPM/GPM ; skip amorçage / boost ; plus de combat avec le volet
+- Services `set_speed` / `set_power` ; poll interval ; diagnostics ; pompe en ligne
+- Config flow : liste des ports + test d’ouverture
+
 ## v0.6.4 — Audit robustesse
 
 - Premier poll RS485 **après** restore des entités (plus de vol du panneau au boot)
@@ -62,7 +72,7 @@ Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o pentair_rs485_v0.6.4.zip -d custom_components/
+unzip -o pentair_rs485_v0.7.0.zip -d custom_components/
 ```
 
 Puis redémarrer HA. Doc complète : [README racine](../README.md). Pour le volet : **Paramètres → Intégrations → Pentair RS485 → Configurer**.

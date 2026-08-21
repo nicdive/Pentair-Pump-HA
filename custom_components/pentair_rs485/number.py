@@ -72,6 +72,9 @@ class PentairPumpRpmNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
         entry_id: str,
     ) -> None:
         super().__init__(coordinator, pump_index, entry_id)
+        self._attr_entity_registry_enabled_default = coordinator.hub.supports_rpm(
+            pump_index
+        )
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -92,6 +95,10 @@ class PentairPumpRpmNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
             return float(target)
         rpm = self.pump_data.get("rpm", 0)
         return float(rpm) if rpm else None
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.pump_data.get("supports_rpm", True))
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.hub.async_run_rpm(self.pump_index, int(value))
@@ -116,6 +123,9 @@ class PentairPumpGpmNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
         entry_id: str,
     ) -> None:
         super().__init__(coordinator, pump_index, entry_id)
+        self._attr_entity_registry_enabled_default = coordinator.hub.supports_gpm(
+            pump_index
+        )
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -136,6 +146,10 @@ class PentairPumpGpmNumber(PentairPumpEntity, NumberEntity, RestoreEntity):
             return float(target)
         gpm = self.pump_data.get("gpm", 0)
         return float(gpm) if gpm else None
+
+    @property
+    def available(self) -> bool:
+        return super().available and bool(self.pump_data.get("supports_gpm", True))
 
     async def async_set_native_value(self, value: float) -> None:
         await self.coordinator.hub.async_run_gpm(self.pump_index, int(value))

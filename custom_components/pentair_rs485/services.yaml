@@ -57,3 +57,61 @@ save_program:
           min: 15
           max: 3450
           mode: box
+
+set_speed:
+  name: Set speed
+  description: Run the pump at a RPM or GPM setpoint (starts the pump).
+  fields:
+    pump_index:
+      name: Pump index
+      description: Pump index configured in the integration (1-16).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+    rpm:
+      name: RPM
+      description: Target speed in RPM (450-3450). Ignored if empty.
+      required: false
+      example: 1800
+      selector:
+        number:
+          min: 450
+          max: 3450
+          step: 50
+          mode: box
+    gpm:
+      name: GPM
+      description: Target flow in GPM (15-130). Ignored if empty.
+      required: false
+      example: 40
+      selector:
+        number:
+          min: 15
+          max: 130
+          mode: box
+
+set_power:
+  name: Set power
+  description: Turn the pump on or off. On re-applies the last RPM/GPM setpoint when known.
+  fields:
+    pump_index:
+      name: Pump index
+      description: Pump index configured in the integration (1-16).
+      required: true
+      example: 1
+      selector:
+        number:
+          min: 1
+          max: 16
+          mode: box
+    power:
+      name: Power
+      description: True = start, False = stop.
+      required: true
+      example: true
+      selector:
+        boolean:

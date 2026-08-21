@@ -23,7 +23,7 @@ class PentairPumpEntity(CoordinatorEntity[PentairPumpCoordinator]):
         super().__init__(coordinator)
         self.pump_index = pump_index
         self.entry_id = entry_id
-        pump_data = coordinator.data.get(pump_index, {})
+        pump_data = (coordinator.data or {}).get(pump_index, {})
         name = pump_data.get("name", f"Pump {pump_index}")
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry_id}_{pump_index}")},
@@ -37,4 +37,14 @@ class PentairPumpEntity(CoordinatorEntity[PentairPumpCoordinator]):
 
     @property
     def pump_data(self) -> dict:
-        return self.coordinator.data.get(self.pump_index, {})
+        return (self.coordinator.data or {}).get(self.pump_index, {})
+
+    @property
+    def available(self) -> bool:
+        if not super().available:
+            return False
+        # Hands-off and local switches stay available; live readings follow pump online
+        # unless the entity opts out via _require_online = False.
+        if getattr(self, "_require_online", False):
+            return bool(self.pump_data.get("online"))
+        return True

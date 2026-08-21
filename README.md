@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.6.4**
+**Version actuelle : v0.7.0**
 
 ---
 
@@ -59,7 +59,7 @@ L’adresse **app** de l’intégration (par défaut **33**) est celle de Home A
 
 ### Option A — depuis une release ZIP (recommandé)
 
-1. Téléchargez `releases/pentair_rs485_v0.6.4.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.7.0.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
@@ -110,16 +110,17 @@ Génère `releases/pentair_rs485_vX.Y.Z.zip` et met à jour `pentair_rs485_ha.zi
    - **Nom** libre (ex. « Pompe piscine »)
    - Cocher **Ajouter une autre pompe** si besoin
 
-### Options (boost volet)
+### Options (boost volet + poll)
 
 **Paramètres → Intégrations → Pentair RS485 → Configurer**
 
 | Champ | Description |
 |-------|-------------|
+| Intervalle de poll RS485 | 10–120 s (défaut **30**). Plus court = UI plus vive, plus de trafic bus |
 | Capteur volet / shutter | `cover.*`, `binary_sensor.*` ou `input_boolean.*` |
 | Inverser | Si `on` = volet **fermé** chez vous |
 
-Laisser vide pour désactiver complètement le boost.
+Laisser le capteur vide pour désactiver complètement le boost.
 
 ### Reconfigurer port / pompes
 
@@ -182,7 +183,8 @@ Chaque pompe expose un appareil Home Assistant avec les entités suivantes.
 
 | Capteur | Description |
 |---------|-------------|
-| **RS485 online** | Bus joignable |
+| **RS485 online** | Adaptateur série ouvert, dernier I/O OK |
+| **Pompe en ligne** | La pompe a répondu à un poll récent (3 polls manqués → offline) |
 | **Boost volet actif** | Un boost est en cours sur cette pompe |
 
 ---
@@ -365,6 +367,23 @@ Domaine : `pentair_rs485`
 | `program` | Slot 1–4 |
 | `speed` | RPM ou GPM selon le profil de commande |
 
+### `pentair_rs485.set_speed`
+
+| Champ | Description |
+|-------|-------------|
+| `pump_index` | Index config (1–16) |
+| `rpm` | Optionnel, 450–3450 — démarre la pompe |
+| `gpm` | Optionnel, 15–130 — démarre la pompe |
+
+Fournir `rpm` et/ou `gpm`.
+
+### `pentair_rs485.set_power`
+
+| Champ | Description |
+|-------|-------------|
+| `pump_index` | Index config (1–16) |
+| `power` | `true` = marche (renvoie la dernière consigne RPM/GPM si connue), `false` = arrêt |
+
 ---
 
 ## Dépannage
@@ -372,12 +391,14 @@ Domaine : `pentair_rs485`
 | Symptôme | Pistes |
 |----------|--------|
 | Intégration ne démarre pas | Port incorrect ; droits série ; autre process sur le port |
-| Capteur **RS485 online** OFF | Câblage A/B, masse, adresse index, alimentation pompe |
+| Capteur **RS485 online** OFF | Adaptateur / droits série / USB débranché |
+| Capteur **Pompe en ligne** OFF | Câblage A/B, masse, adresse index, alimentation pompe |
 | Commandes sans effet | Vérifier que **Contrôle panneau** est OFF |
 | Pompe redémarre seule après reboot HA | Vérifier l’attribut `desired_run` du switch Marche |
 | Boost qui ne se déclenche pas | Options → capteur volet ; switch boost ON ; panneau OFF ; états `open`/`on` |
 | Doublons d’entités après upgrade | Anciens `unique_id` : supprimer les entités orphelines dans HA |
 | USB qui disparaît | Reconnexion auto ; préférer `/dev/serial/by-id/…` |
+| Intégration grisée / indisponible | v0.7.0 : le bus down n’empêche plus le chargement ; les capteurs live passent `unavailable`, les commandes restent utilisables |
 
 Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 
@@ -389,6 +410,28 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - En **Contrôle panneau ON**, le statut RS485 n’est plus pollé (affichage figé sur la dernière valeur connue) — voulu pour ne pas voler le bus.
 - Changement de schéma `unique_id` (v0.6.2) : possibles entités orphelines à nettoyer une fois.
 - Pas de support IntelliCenter / EasyTouch en maître concurrent sur le même bus (intégration conçue en **standalone**).
+- Les entités RPM sont masquées / indisponibles sur une pompe **VF** ; les GPM sur une pompe **VS**.
+
+---
+
+## Nouveautés v0.7.0
+
+Fiabilité :
+
+- L’intégration **charge même si le port USB est absent** (retry en arrière-plan, plus de `ConfigEntryNotReady` bloquant).
+- Poll multi-pompes : on attend la **bonne** pompe, plus la première trame venue.
+- Pompe marquée **offline** après 3 polls sans réponse (dernier statut conservé, plus de valeurs « fantômes » présentées comme live).
+- Watchdog : rattrape aussi une pompe « allumée » à la **mauvaise vitesse** ; ignore amorçage et boost volet.
+- **Stop programme** coupe vraiment `desired_run` (plus de relance au reboot HA).
+- Marche ON **renvoie la consigne** RPM/GPM, pas seulement le paquet power.
+- Boost volet : **n'écrase plus** la consigne utilisateur ; ne relance pas une pompe qui était arrêtée ; ignore l'état `closing` (boost jusqu'à `closed`).
+- I/O série sur un **thread dédié** ; logs de statut passés en debug.
+
+Fonctions / usage :
+
+- Capteur binaire **Pompe en ligne** ; diagnostics HA (menu Intégration → Télécharger les diagnostics).
+- Services `set_speed` / `set_power` ; intervalle de poll configurable ; liste des ports série dans le config flow.
+- Profil de commande persisté, sans démarrer la pompe au changement RPM/GPM.
 
 ---
 

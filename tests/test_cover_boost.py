@@ -33,6 +33,9 @@ class _FakeHub:
     def is_hands_off(self, index: int) -> bool:
         return False
 
+    def should_run(self, index: int) -> bool:
+        return bool(self._status and self._status.is_on)
+
     def get_command_profile(self, index: int) -> CommandProfile:
         return self._profile
 
@@ -103,7 +106,9 @@ def test_apply_and_restore_rpm():
         ctrl.set_boost_speed(1, 2500)
         ctrl._cover_open = True
         await ctrl._async_apply_boost(1)
-        hub.async_run_rpm.assert_awaited_with(1, 2500)
+        hub.async_run_rpm.assert_awaited_with(
+            1, 2500, update_target=False, update_should_run=False
+        )
         assert ctrl.is_boost_active(1) is True
         snap = ctrl.get_snapshot(1)
         assert snap is not None

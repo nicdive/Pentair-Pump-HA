@@ -5,12 +5,16 @@
     "@nico"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/tagyoureit/nodejs-poolController",
+  "documentation": "https://github.com/nicdive/Pentair-Pump-HA",
+  "issue_tracker": "https://github.com/nicdive/Pentair-Pump-HA/issues",
   "integration_type": "hub",
   "iot_class": "local_polling",
+  "loggers": [
+    "custom_components.pentair_rs485"
+  ],
   "requirements": [
     "pyserial>=3.5"
   ],
-  "version": "0.6.4",
+  "version": "0.7.0",
   "homeassistant": "2024.2.0"
 }

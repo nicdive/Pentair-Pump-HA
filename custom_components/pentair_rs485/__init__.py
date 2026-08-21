@@ -1,4 +1,4 @@
-"""The Pentair RS485 Pump integration v0.6.4."""
+"""The Pentair RS485 Pump integration v0.7.0."""
 
 DOMAIN = "pentair_rs485"
 PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]
@@ -19,6 +19,15 @@ async def async_setup_entry(hass, entry):
         CONF_PUMP_NAME,
         CONF_PUMP_TYPE,
         CONF_PUMPS,
+        CONF_SCAN_INTERVAL,
+        DEFAULT_APP_ADDRESS,
+        DEFAULT_SCAN_INTERVAL,
+        MAX_SCAN_INTERVAL,
+        MIN_SCAN_INTERVAL,
+        SERVICE_RUN_PROGRAM,
+        SERVICE_SAVE_PROGRAM,
+        SERVICE_SET_POWER,
+        SERVICE_SET_SPEED,
     )
     from .coordinator import PentairPumpCoordinator
     from .cover_boost import CoverBoostController, cover_options_from_entry
@@ -38,12 +47,19 @@ async def async_setup_entry(hass, entry):
     ]
     hub = PentairHub(
         bus=bus,
-        app_address=data.get(CONF_APP_ADDRESS, 33),
+        app_address=data.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
         pumps=pumps,
     )
     await hub.async_setup()
 
-    coordinator = PentairPumpCoordinator(hass, hub)
+    options = entry.options or {}
+    try:
+        scan_interval = int(options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL))
+    except (TypeError, ValueError):
+        scan_interval = DEFAULT_SCAN_INTERVAL
+    scan_interval = max(MIN_SCAN_INTERVAL, min(MAX_SCAN_INTERVAL, scan_interval))
+
+    coordinator = PentairPumpCoordinator(hass, hub, scan_interval=scan_interval)
 
     cover_entity, cover_invert = cover_options_from_entry(entry)
     cover_boost = CoverBoostController(
@@ -53,6 +69,7 @@ async def async_setup_entry(hass, entry):
         cover_entity_id=cover_entity,
         cover_invert=cover_invert,
     )
+    coordinator.cover_boost = cover_boost
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {
         "hub": hub,
@@ -65,7 +82,7 @@ async def async_setup_entry(hass, entry):
     # poll so panel-control / desired_run are known and we don't steal the panel.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     await cover_boost.async_setup()
-    await coordinator.async_config_entry_first_refresh()
+    await coordinator.async_refresh()
 
     async def _startup_sync(_event=None):
         await cover_boost.async_startup_sync()
@@ -81,7 +98,7 @@ async def async_setup_entry(hass, entry):
 
     from .service import async_setup_services
 
-    if not hass.services.has_service(DOMAIN, "run_program"):
+    if not hass.services.has_service(DOMAIN, SERVICE_RUN_PROGRAM):
         async_setup_services(hass)
 
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
@@ -95,11 +112,30 @@ async def _async_update_listener(hass, entry):
 
 async def async_unload_entry(hass, entry):
     """Unload a config entry."""
+    from .const import (
+        SERVICE_RUN_PROGRAM,
+        SERVICE_SAVE_PROGRAM,
+        SERVICE_SET_POWER,
+        SERVICE_SET_SPEED,
+    )
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         stored = hass.data[DOMAIN].pop(entry.entry_id)
         cover_boost = stored.get("cover_boost")
         if cover_boost is not None:
             await cover_boost.async_shutdown()
+        coordinator = stored.get("coordinator")
+        if coordinator is not None and hasattr(coordinator, "async_shutdown"):
+            await coordinator.async_shutdown()
         await stored["hub"].async_shutdown()
+        if not hass.data.get(DOMAIN):
+            for service in (
+                SERVICE_RUN_PROGRAM,
+                SERVICE_SAVE_PROGRAM,
+                SERVICE_SET_SPEED,
+                SERVICE_SET_POWER,
+            ):
+                if hass.services.has_service(DOMAIN, service):
+                    hass.services.async_remove(DOMAIN, service)
     return unload_ok

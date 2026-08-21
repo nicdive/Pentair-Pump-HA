@@ -38,7 +38,7 @@ async def async_setup_entry(
     async_add_entities(entities)
 
 
-class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
+class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity, RestoreEntity):
     _attr_translation_key = "command_profile"
     _attr_icon = "mdi:swap-horizontal"
 
@@ -49,7 +49,23 @@ class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
         entry_id: str,
     ) -> None:
         super().__init__(coordinator, pump_index, entry_id)
-        self._attr_options = ["rpm", "gpm"]
+
+    async def async_added_to_hass(self) -> None:
+        await super().async_added_to_hass()
+        last = await self.async_get_last_state()
+        if last is not None and last.state in ("rpm", "gpm"):
+            self.coordinator.hub.set_command_profile(
+                self.pump_index, CommandProfile(last.state)
+            )
+
+    @property
+    def options(self) -> list[str]:
+        opts: list[str] = []
+        if self.pump_data.get("supports_rpm", True):
+            opts.append("rpm")
+        if self.pump_data.get("supports_gpm", True):
+            opts.append("gpm")
+        return opts or ["rpm", "gpm"]
 
     @property
     def current_option(self) -> str | None:
@@ -57,11 +73,10 @@ class PentairCommandProfileSelect(PentairPumpEntity, SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         profile = CommandProfile(option)
+        # Change the command set only — do not start the pump.
         self.coordinator.hub.set_command_profile(self.pump_index, profile)
-        if profile == CommandProfile.GPM:
-            await self.coordinator.hub.async_send_manual_mode(self.pump_index)
-        else:
-            await self.coordinator.hub.async_send_speed1_mode(self.pump_index)
+        mode = 1 if profile == CommandProfile.GPM else 2
+        await self.coordinator.hub.async_set_pump_mode(self.pump_index, mode)
         await self.coordinator.async_request_refresh()
 
 
