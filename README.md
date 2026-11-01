@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.5**
+**Version actuelle : v0.7.6**
 
 ---
 
@@ -62,19 +62,19 @@ Ce n’est **pas** un module complémentaire Supervisor (add-on Docker). C’est
 
 ### Option A — HACS (recommandé, mises à jour dans HA)
 
-Même dépôt custom pour les deux HA. HACS installe les **deux** dossiers ; vous n’ajoutez que l’intégration dont vous avez besoin.
+HACS n’accepte **qu’une** intégration par dépôt. Un seul module : **Pentair RS485**, avec deux modes.
 
 1. Installez [HACS](https://hacs.xyz/) s’il n’est pas déjà là.
 2. **HACS → Intégrations → ⋮ → Dépôts personnalisés**.
 3. URL : `https://github.com/nicdive/Pentair-Pump-HA`  
    Type : **Integration**.
-4. Cherchez **Pentair RS485 / afficheur**, téléchargez / installez.
-5. Redémarrez Home Assistant.
-6. **Paramètres → Appareils et services → Ajouter une intégration** :
-   - HA **piscine** : **Pentair RS485** (USB + pompe)
-   - HA **principal** : **Pentair afficheur pompe** seulement (carte Lovelace, Remote HA)
+4. Cherchez **Pentair RS485**, téléchargez / installez **0.7.6+**.
+5. Redémarrez Home Assistant (obligatoire).
+6. **Paramètres → Appareils et services → Ajouter une intégration → Pentair RS485** :
+   - HA **piscine** : **Pompe — USB RS485**
+   - HA **principal** : **Afficheur — Remote HA (sans USB)**
 
-Ne configurez **pas** Pentair RS485 sur le HA principal (pas de clé USB).
+Si l’intégration n’apparaît pas après un install HACS 0.7.5 : mettez à jour en 0.7.6, redémarrez, et si besoin supprimez les dossiers imbriqués sous `custom_components/pentair_rs485/` puis réinstallez.
 
 Quand une nouvelle version est publiée sur GitHub (tag `vX.Y.Z` = champ `version` du `manifest.json`), HACS propose la mise à jour. Vous validez, HA redémarre, c’est tout.
 
@@ -82,13 +82,13 @@ Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entit
 
 ### Option B — ZIP manuel
 
-1. Téléchargez `releases/pentair_rs485_v0.7.5.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.7.6.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.7.5.zip -d custom_components/
+unzip -o /chemin/vers/pentair_rs485_v0.7.6.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.
@@ -141,9 +141,7 @@ Si la carte n’apparaît pas (Lovelace YAML) : **Paramètres → Tableaux de bo
 
 ### Sur le HA principal (Remote HA, sans pompe)
 
-Via **HACS**, même dépôt que la piscine (voir Option A). Après redémarrage : **Ajouter une intégration → Pentair afficheur pompe**. Ne configurez pas Pentair RS485.
-
-À la main : `releases/pentair_pump_display_v0.7.5.zip` dans `custom_components/`.
+Même HACS / même intégration **Pentair RS485**. Au setup, choisissez **Afficheur — Remote HA (sans USB)**. Pas de port série.
 
 Carte Lovelace (IDs tels qu’ils sont sur le HA principal) :
 
@@ -167,7 +165,8 @@ Exemples : `lovelace/pump_display.yaml` (piscine) et `lovelace/pump_display_remo
 
 ### Première installation
 
-1. **Port série** — ex. `/dev/ttyUSB0` ou, mieux, un chemin stable :
+0. **Mode** — **Pompe — USB RS485** (HA piscine) ou **Afficheur — Remote HA** (HA principal).
+1. **Port série** (mode pompe) — ex. `/dev/ttyUSB0` ou, mieux, un chemin stable :
 
    ```text
    /dev/serial/by-id/usb-FTDI_FT232R_USB_UART_XXXX-if00-port0
@@ -486,9 +485,14 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 
 ---
 
+## Nouveautés v0.7.6
+
+- HACS : **une** intégration. Au setup, **Pompe (USB)** ou **Afficheur (Remote HA)**.
+- Correction 0.7.5 : le zip HACS empêchait l’intégration d’apparaître dans HA.
+
 ## Nouveautés v0.7.5
 
-- HACS installe pompe **et** afficheur : sur le HA principal, même dépôt custom, n’ajouter que **Pentair afficheur pompe**.
+- Tentative d’installer pompe + afficheur comme deux modules HACS (remplacé en 0.7.6).
 
 ## Nouveautés v0.7.4
 

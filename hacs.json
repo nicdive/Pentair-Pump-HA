@@ -1,7 +1,5 @@
 {
-  "name": "Pentair RS485 / afficheur",
+  "name": "Pentair RS485",
   "homeassistant": "2024.2.0",
-  "render_readme": true,
-  "zip_release": true,
-  "filename": "pentair_rs485_ha.zip"
+  "render_readme": true
 }

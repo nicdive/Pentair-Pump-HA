@@ -3,7 +3,14 @@
     "step": {
       "user": {
         "title": "Pentair RS485",
-        "description": "Step 1: enter your USB/serial adapter path. Step 2: keep 33 for the integration's address on the Pentair bus (this is not the serial port).",
+        "description": "Pump HA: USB adapter. House HA (Remote HA): display only — no serial port.",
+        "data": {
+          "setup_mode": "What to install"
+        }
+      },
+      "port": {
+        "title": "Serial adapter",
+        "description": "USB/serial path, then keep 33 for the integration bus address (not the serial port).",
         "data": {
           "port": "Serial adapter port (e.g. /dev/ttyUSB0)",
           "app_address": "Integration address on Pentair bus (appAddress, keep 33)"

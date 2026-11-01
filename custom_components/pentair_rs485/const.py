@@ -1,5 +1,7 @@
 """Constants for the Pentair RS485 pump integration."""
 
+from __future__ import annotations
+
 DOMAIN = "pentair_rs485"
 
 CONF_APP_ADDRESS = "app_address"
@@ -12,6 +14,14 @@ CONF_ADD_ANOTHER = "add_another"
 CONF_COVER_ENTITY = "cover_entity_id"
 CONF_COVER_INVERT = "cover_invert"
 CONF_SCAN_INTERVAL = "scan_interval"
+CONF_SETUP_MODE = "setup_mode"
+SETUP_MODE_PUMP = "pump"
+SETUP_MODE_DISPLAY = "display"
+
+
+def is_display_entry(data: dict | None) -> bool:
+    """True for the Lovelace-only Home Assistant (no USB / no pumps)."""
+    return bool(data) and data.get(CONF_SETUP_MODE) == SETUP_MODE_DISPLAY
 
 DEFAULT_APP_ADDRESS = 33
 DEFAULT_BAUD_RATE = 9600

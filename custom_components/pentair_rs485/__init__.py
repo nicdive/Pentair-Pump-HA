@@ -1,4 +1,4 @@
-"""The Pentair RS485 Pump integration v0.7.5."""
+"""The Pentair RS485 Pump integration v0.7.6."""
 
 DOMAIN = "pentair_rs485"
 PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]
@@ -28,6 +28,7 @@ async def async_setup_entry(hass, entry):
         SERVICE_SAVE_PROGRAM,
         SERVICE_SET_POWER,
         SERVICE_SET_SPEED,
+        is_display_entry,
     )
     from .coordinator import PentairPumpCoordinator
     from .cover_boost import CoverBoostController, cover_options_from_entry
@@ -36,6 +37,13 @@ async def async_setup_entry(hass, entry):
     from .rs485.packets import PumpType
 
     data = entry.data
+    if is_display_entry(data):
+        from .frontend import async_register_frontend
+
+        hass.data.setdefault(DOMAIN, {})[entry.entry_id] = {"mode": "display"}
+        await async_register_frontend(hass)
+        return True
+
     bus = RS485Bus(data[CONF_PORT])
     pumps = [
         PumpConfig(
@@ -127,6 +135,11 @@ async def async_unload_entry(hass, entry):
         SERVICE_SET_POWER,
         SERVICE_SET_SPEED,
     )
+
+    stored = hass.data.get(DOMAIN, {}).get(entry.entry_id) or {}
+    if stored.get("mode") == "display":
+        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
+        return True
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:

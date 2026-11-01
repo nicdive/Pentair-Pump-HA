@@ -3,7 +3,14 @@
     "step": {
       "user": {
         "title": "Pentair RS485",
-        "description": "Étape 1 : port USB/série. Étape 2 : laisser 33 pour l'adresse bus (pas le port série).",
+        "description": "HA piscine : adaptateur USB. HA principal (Remote HA) : afficheur seul, sans port série.",
+        "data": {
+          "setup_mode": "Quoi installer"
+        }
+      },
+      "port": {
+        "title": "Adaptateur série",
+        "description": "Port USB/série, puis laisser 33 pour l'adresse bus (pas le port série).",
         "data": {
           "port": "Port série",
           "app_address": "Adresse bus (appAddress, laisser 33)"

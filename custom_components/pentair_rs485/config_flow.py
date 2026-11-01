@@ -22,6 +22,7 @@ from .const import (
     CONF_PUMP_TYPE,
     CONF_PUMPS,
     CONF_SCAN_INTERVAL,
+    CONF_SETUP_MODE,
     DEFAULT_APP_ADDRESS,
     DEFAULT_COVER_INVERT,
     DEFAULT_SCAN_INTERVAL,
@@ -29,6 +30,9 @@ from .const import (
     MAX_SCAN_INTERVAL,
     MIN_SCAN_INTERVAL,
     PUMP_TYPES,
+    SETUP_MODE_DISPLAY,
+    SETUP_MODE_PUMP,
+    is_display_entry,
 )
 from .device_cleanup import filter_kept_pumps
 
@@ -163,12 +167,50 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
         if user_input is not None:
+            if user_input[CONF_SETUP_MODE] == SETUP_MODE_DISPLAY:
+                await self.async_set_unique_id("display")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title="Pentair afficheur pompe",
+                    data={CONF_SETUP_MODE: SETUP_MODE_DISPLAY},
+                )
+            return await self.async_step_port()
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SETUP_MODE, default=SETUP_MODE_PUMP
+                    ): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=[
+                                selector.SelectOptionDict(
+                                    value=SETUP_MODE_PUMP,
+                                    label="Pompe — USB RS485",
+                                ),
+                                selector.SelectOptionDict(
+                                    value=SETUP_MODE_DISPLAY,
+                                    label="Afficheur — Remote HA (sans USB)",
+                                ),
+                            ],
+                            mode=selector.SelectSelectorMode.LIST,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_port(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        if user_input is not None:
             port = user_input[CONF_PORT]
             error = await _async_test_port(self.hass, port)
             if error:
                 _LOGGER.warning("Cannot open RS485 port %s: %s", port, error)
                 return self.async_show_form(
-                    step_id="user",
+                    step_id="port",
                     data_schema=_port_schema(port),
                     errors={"base": "cannot_connect"},
                 )
@@ -180,7 +222,7 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.context["pumps"] = []
             return await self.async_step_pump()
 
-        return self.async_show_form(step_id="user", data_schema=_port_schema())
+        return self.async_show_form(step_id="port", data_schema=_port_schema())
 
     async def async_step_pump(
         self, user_input: dict[str, Any] | None = None
@@ -220,6 +262,8 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> config_entries.ConfigFlowResult:
         """Change port / address, keep or drop listed pumps, optionally add."""
         entry = self._reconfigure_entry()
+        if is_display_entry(entry.data):
+            return self.async_abort(reason="reconfigure_successful")
         self.context["reconfigure"] = True
         errors: dict[str, str] = {}
 
@@ -281,6 +325,7 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_finish_reconfigure(self) -> config_entries.ConfigFlowResult:
         entry = self._reconfigure_entry()
         data = {
+            CONF_SETUP_MODE: SETUP_MODE_PUMP,
             CONF_PORT: self.context["port"],
             CONF_APP_ADDRESS: self.context.get("app_address", DEFAULT_APP_ADDRESS),
             CONF_PUMPS: self.context.get("pumps", []),
@@ -305,6 +350,7 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_create_entry(
             title=f"Pentair RS485 ({port})",
             data={
+                CONF_SETUP_MODE: SETUP_MODE_PUMP,
                 CONF_PORT: port,
                 CONF_APP_ADDRESS: self.context.get("app_address", DEFAULT_APP_ADDRESS),
                 CONF_PUMPS: self.context.get("pumps", []),
