@@ -75,13 +75,13 @@ Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entit
 
 ### Option B — ZIP manuel
 
-1. Téléchargez `releases/pentair_rs485_v0.7.0.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.7.1.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.7.0.zip -d custom_components/
+unzip -o /chemin/vers/pentair_rs485_v0.7.1.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.

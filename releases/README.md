@@ -82,7 +82,7 @@ ZIP manuel :
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o pentair_rs485_v0.7.0.zip -d custom_components/
+unzip -o pentair_rs485_v0.7.1.zip -d custom_components/
 ```
 
 Puis redémarrer HA. Doc complète : [README racine](../README.md). Pour le volet : **Paramètres → Intégrations → Pentair RS485 → Configurer**.
