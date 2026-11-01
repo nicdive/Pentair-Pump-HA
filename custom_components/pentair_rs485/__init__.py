@@ -1,4 +1,4 @@
-"""The Pentair RS485 Pump integration v0.7.2."""
+"""The Pentair RS485 Pump integration v0.7.3."""
 
 DOMAIN = "pentair_rs485"
 PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]

@@ -4,6 +4,10 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.7.3 — Fantôme VS 0.5.2
+
+- Supprime l’ancien appareil Pool Pump (identifiants 0.5.2) même s’il a le même index que la pompe actuelle
+
 ## v0.7.2 — Retirer une pompe à la reconfiguration
 
 - Reconfigurer : liste **Pompes à conserver** (décocher VS fantôme, etc.)
@@ -87,7 +91,7 @@ ZIP manuel :
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o pentair_rs485_v0.7.2.zip -d custom_components/
+unzip -o pentair_rs485_v0.7.3.zip -d custom_components/
 ```
 
 Puis redémarrer HA. Doc complète : [README racine](../README.md). Pour le volet : **Paramètres → Intégrations → Pentair RS485 → Configurer**.

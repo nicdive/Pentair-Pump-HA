@@ -6,6 +6,7 @@ from custom_components.pentair_rs485.const import (
     CONF_PUMP_TYPE,
 )
 from custom_components.pentair_rs485.device_cleanup import (
+    current_keep_device_identifiers,
     device_pump_index,
     filter_kept_pumps,
     should_remove_device,
@@ -75,3 +76,26 @@ def test_should_remove_orphan_vs_keep_vf() -> None:
         should_remove_device(entry, {("pentair_rs485", "abc123_bus")}, keep)
         is False
     )
+
+
+def test_legacy_05_device_is_removed_even_if_same_index() -> None:
+    """0.5.2 used (domain, \"1\"); 0.6.2+ uses (domain, \"{entry}_1\")."""
+    entry = "abc123"
+    keep = {1}
+    assert should_remove_device(entry, {("pentair_rs485", "1")}, keep) is True
+    assert should_remove_entity(entry, "pentair_rs485_1_power", keep) is True
+    assert ("pentair_rs485", "1") not in current_keep_device_identifiers(
+        entry, keep
+    )
+
+
+def test_unknown_device_on_entry_is_removed() -> None:
+    entry = "abc123"
+    keep = {1}
+    assert (
+        should_remove_device(
+            entry, {("pentair_rs485", "pool_pump_old")}, keep
+        )
+        is True
+    )
+    assert should_remove_device(entry, set(), keep) is True
