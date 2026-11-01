@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.7**
+**Version actuelle : v0.8.0**
 
 ---
 
@@ -62,33 +62,33 @@ Ce n’est **pas** un module complémentaire Supervisor (add-on Docker). C’est
 
 ### Option A — HACS (recommandé, mises à jour dans HA)
 
-HACS n’accepte **qu’une** intégration par dépôt. Un seul module : **Pentair RS485**, avec deux modes.
+Un seul module, même nom qu’en **0.7.3** : **Pentair RS485**. Deux modes au setup.
 
 1. Installez [HACS](https://hacs.xyz/) s’il n’est pas déjà là.
 2. **HACS → Intégrations → ⋮ → Dépôts personnalisés**.
 3. URL : `https://github.com/nicdive/Pentair-Pump-HA`  
    Type : **Integration**.
-4. Cherchez **Pentair RS485**, téléchargez / installez **0.7.7+**.
-5. Redémarrez Home Assistant (obligatoire).
-6. **Paramètres → Appareils et services → Ajouter une intégration** :
-   - HA **piscine** : **Pentair RS485** → **Pompe — USB RS485**
-   - HA **principal** : **Pentair afficheur pompe** (ou Pentair RS485 → **Afficheur — Remote HA**)
+4. Cherchez **Pentair RS485**, installez **0.8.0+**.
+5. Redémarrez Home Assistant.
+6. **Ajouter une intégration → Pentair RS485** :
+   - HA **piscine** : **Pompe — USB RS485**
+   - HA **principal** : **Afficheur — Remote HA (sans USB)** — pas de pompe, pas de port
 
-Si HACS dit `No manifest.json … pentair_pump_display` : installez **0.7.7** (ce dossier est de nouveau présent).
+Depuis 0.7.3, HACS propose la mise à jour **Pentair RS485** → 0.8.0.
 
-Quand une nouvelle version est publiée sur GitHub (tag `vX.Y.Z` = champ `version` du `manifest.json`), HACS propose la mise à jour. Vous validez, HA redémarre, c’est tout.
+Si HACS parle encore de `pentair_pump_display` : **HACS → ⋮ → Dépôts personnalisés** → supprimer le dépôt, le réajouter (même URL), installer **Pentair RS485** 0.8.0. Sur le HA principal, supprimez aussi le dossier `custom_components/pentair_pump_display`.
 
 Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entités (`unique_id`). Supprimez les orphelines une fois.
 
 ### Option B — ZIP manuel
 
-1. Téléchargez `releases/pentair_rs485_v0.7.6.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.8.0.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
 cd /config
-rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.7.6.zip -d custom_components/
+rm -rf custom_components/pentair_rs485 custom_components/pentair_pump_display
+unzip -o /chemin/vers/pentair_rs485_v0.8.0.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.
@@ -484,6 +484,11 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.8.0
+
+- Un seul module **Pentair RS485** (même nom HACS qu’en 0.7.3).
+- Setup : **Pompe USB** ou **Afficheur Remote HA** (aucun port si pas de pompe).
 
 ## Nouveautés v0.7.7
 

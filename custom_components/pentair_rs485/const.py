@@ -23,6 +23,18 @@ def is_display_entry(data: dict | None) -> bool:
     """True for the Lovelace-only Home Assistant (no USB / no pumps)."""
     return bool(data) and data.get(CONF_SETUP_MODE) == SETUP_MODE_DISPLAY
 
+
+def default_setup_mode(ports: list[str] | None) -> str:
+    """Prefer display-only when no USB-serial adapter is visible."""
+    found = ports or []
+    if any(
+        token in path
+        for path in found
+        for token in ("ttyUSB", "ttyACM", "serial/by-id")
+    ):
+        return SETUP_MODE_PUMP
+    return SETUP_MODE_DISPLAY
+
 DEFAULT_APP_ADDRESS = 33
 DEFAULT_BAUD_RATE = 9600
 DEFAULT_SCAN_INTERVAL = 30

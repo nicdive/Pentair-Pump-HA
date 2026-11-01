@@ -4,6 +4,11 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.8.0 — Un module, même nom qu’en 0.7.3
+
+- HACS : **Pentair RS485** uniquement
+- Mode afficheur sans USB pour le HA principal
+
 ## v0.7.7 — HACS « No manifest.json pentair_pump_display »
 
 - Remet le dossier `pentair_pump_display` attendu par HACS après l’install 0.7.5
@@ -111,7 +116,7 @@ ZIP manuel :
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o pentair_rs485_v0.7.6.zip -d custom_components/
+unzip -o pentair_rs485_v0.8.0.zip -d custom_components/
 ```
 
 Puis redémarrer HA. Doc complète : [README racine](../README.md). Pour le volet : **Paramètres → Intégrations → Pentair RS485 → Configurer**.

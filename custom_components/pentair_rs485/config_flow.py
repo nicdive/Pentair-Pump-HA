@@ -32,6 +32,7 @@ from .const import (
     PUMP_TYPES,
     SETUP_MODE_DISPLAY,
     SETUP_MODE_PUMP,
+    default_setup_mode as _default_mode_from_ports,
     is_display_entry,
 )
 from .device_cleanup import filter_kept_pumps
@@ -55,6 +56,13 @@ def _list_serial_ports() -> list[str]:
         if path not in unique:
             unique.append(path)
     return unique
+
+
+def default_setup_mode(ports: list[str] | None = None) -> str:
+    """Prefer display-only when no USB-serial adapter is visible."""
+    return _default_mode_from_ports(
+        ports if ports is not None else _list_serial_ports()
+    )
 
 
 def _port_schema(
@@ -181,7 +189,7 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             data_schema=vol.Schema(
                 {
                     vol.Required(
-                        CONF_SETUP_MODE, default=SETUP_MODE_PUMP
+                        CONF_SETUP_MODE, default=default_setup_mode()
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=[
@@ -373,6 +381,11 @@ class PentairRS485OptionsFlow(config_entries.OptionsFlow):
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
+        if is_display_entry(self._config_entry.data):
+            return self.async_create_entry(
+                title="", data=dict(self._config_entry.options)
+            )
+
         if user_input is not None:
             entity = user_input.get(CONF_COVER_ENTITY)
             if not entity:
