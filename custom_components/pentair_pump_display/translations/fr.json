@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pentair afficheur pompe",
+        "description": "Installe uniquement la carte Lovelace LCD IntelliFlo. Pas de port USB, pas de pompe. Pointez la carte vers les entités ramenées par Remote Home Assistant (switch Marche + capteurs)."
+      }
+    },
+    "abort": {
+      "already_configured": "L’afficheur pompe est déjà installé."
+    }
+  }
+}

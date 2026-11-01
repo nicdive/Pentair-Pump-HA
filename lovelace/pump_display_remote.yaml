@@ -1,0 +1,10 @@
+# Carte LCD sur le HA principal (entités Remote HA, pas de clé USB).
+# IDs tels qu’ils apparaissent sur le HA principal.
+
+type: custom:pentair-pump-display-card
+entity: switch.pump_1_marche
+name: POMPE 1
+display: switch.pump_1_afficheur_actif
+rpm: sensor.pump_1_rpm_actuel
+watts: sensor.pump_1_puissance
+mode: sensor.pump_1_mode_de_fonctionnement

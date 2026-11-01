@@ -36,4 +36,6 @@ jobs:
           generate_release_notes: true
           files: |
             pentair_rs485_ha.zip
+            pentair_pump_display.zip
             releases/pentair_rs485_v*.zip
+            releases/pentair_pump_display_v*.zip

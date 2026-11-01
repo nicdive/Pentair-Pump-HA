@@ -14,7 +14,7 @@ const SIBLING_KEYS = {
 
 const ID_HINTS = {
   power: ["_marche", "_power"],
-  display: ["_afficheur", "_display_active"],
+  display: ["_afficheur_actif", "_afficheur", "_display_active"],
   rpm: ["_rpm_actuel", "_current_rpm", "_rpm_reading"],
   gpm: ["_gpm_actuel", "_current_gpm", "_gpm_reading"],
   watts: ["_puissance", "_power_draw", "_watts"],
@@ -23,6 +23,8 @@ const ID_HINTS = {
   clock: ["_horloge", "_clock"],
   error: ["_erreur", "_error"],
 };
+
+const LOOKUP_DOMAINS = ["sensor", "switch", "number", "binary_sensor"];
 
 function siblingEntity(hass, anchor, kind, config) {
   const override = config && config[kind];
@@ -38,10 +40,18 @@ function siblingEntity(hass, anchor, kind, config) {
     }
   }
   const hints = ID_HINTS[kind] || [];
-  const prefix = anchor.replace(/_(marche|power)$/, "");
+  const objectId = String(anchor).replace(
+    /^(switch|sensor|number|binary_sensor|button)\./,
+    ""
+  );
+  const base = objectId.replace(/_(marche|power)$/, "");
   for (const hint of hints) {
-    const candidate = prefix + hint;
-    if (hass.states[candidate]) return candidate;
+    for (const domain of LOOKUP_DOMAINS) {
+      const candidate = `${domain}.${base}${hint}`;
+      if (hass.states[candidate]) return candidate;
+    }
+    const sameDomain = String(anchor).replace(/_(marche|power)$/, "") + hint;
+    if (hass.states[sameDomain]) return sameDomain;
   }
   if (deviceId) {
     for (const [eid, info] of Object.entries(entities)) {

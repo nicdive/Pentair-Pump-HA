@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.3**
+**Version actuelle : v0.7.4**
 
 ---
 
@@ -76,13 +76,13 @@ Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entit
 
 ### Option B — ZIP manuel
 
-1. Téléchargez `releases/pentair_rs485_v0.7.3.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.7.4.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.7.3.zip -d custom_components/
+unzip -o /chemin/vers/pentair_rs485_v0.7.4.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.
@@ -117,21 +117,44 @@ Génère `releases/pentair_rs485_vX.Y.Z.zip` et met à jour `pentair_rs485_ha.zi
 
 Carte optionnelle qui imite l’écran IntelliFlo (RPM, watts, mode, horloge). Elle n’est **pas** obligatoire.
 
-1. Redémarrer HA après installation / mise à jour de l’intégration (la carte JS est servie par le composant).
+### Sur le HA piscine (intégration RS485)
+
+1. Redémarrer HA après installation / mise à jour (la carte JS est servie par le composant).
 2. Tableau de bord → **Ajouter une carte** → **Carte personnalisée**, ou en YAML :
 
 ```yaml
 type: custom:pentair-pump-display-card
-entity: switch.pool_pump_marche
+entity: switch.pump_1_marche
 ```
 
-`entity` = le switch **Marche**. RPM, puissance, mode, afficheur, etc. sont pris sur le même appareil.
+`entity` = le switch **Marche**. RPM, puissance, mode, afficheur sont trouvés sur le même appareil.
 
-Boutons sous l’écran : Start/Stop, LCD on/off (**Afficheur actif**), fiche entité.
+Boutons : Start/Stop, LCD on/off (**Afficheur actif**), fiche entité.
 
-Si la carte n’apparaît pas (Lovelace en YAML) : **Paramètres → Tableaux de bord → Ressources** → `/pentair_rs485/pentair-pump-display-card.js` (type `module`).
+Si la carte n’apparaît pas (Lovelace YAML) : **Paramètres → Tableaux de bord → Ressources** → `/pentair_rs485/pentair-pump-display-card.js` (type `module`).
 
-Exemple : `lovelace/pump_display.yaml`.
+### Sur le HA principal (Remote HA, sans pompe)
+
+N’installez **pas** `pentair_rs485` (pas de clé USB ici). Installez le module **Pentair afficheur pompe** :
+
+1. Téléchargez `releases/pentair_pump_display_v0.7.4.zip`.
+2. Dézippez dans `/config/custom_components/` (dossier `pentair_pump_display`).
+3. Redémarrez HA → **Ajouter une intégration → Pentair afficheur pompe**.
+4. Carte Lovelace (IDs tels qu’ils sont sur le HA principal) :
+
+```yaml
+type: custom:pentair-pump-display-card
+entity: switch.pump_1_marche
+name: POMPE 1
+display: switch.pump_1_afficheur_actif
+rpm: sensor.pump_1_rpm_actuel
+watts: sensor.pump_1_puissance
+mode: sensor.pump_1_mode_de_fonctionnement
+```
+
+Remote HA doit remonter au moins `switch` + `sensor` (Marche, Afficheur, RPM, watts, mode).
+
+Exemples : `lovelace/pump_display.yaml` (piscine) et `lovelace/pump_display_remote.yaml` (principal).
 
 ---
 
@@ -457,6 +480,11 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.7.4
+
+- Module **Pentair afficheur pompe** : carte LCD seule, pour le HA principal (Remote HA), sans USB.
+- La carte trouve aussi les capteurs par suffixe (`sensor.pump_1_rpm_actuel` depuis `switch.pump_1_marche`).
 
 ## Nouveautés v0.7.3
 
