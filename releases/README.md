@@ -4,6 +4,12 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.7.1 — VF WhisperFlo : RPM comme en 0.5.2
+
+- Une pompe **VF** expose à nouveau Vitesse (RPM) + RPM actuel
+- Profil de commande par défaut = **RPM** (GPM reste disponible)
+- Plus de curseur RPM grisé sur IntelliFlo WhisperFlo VF
+
 ## v0.7.0 — Fiabilité bus, watchdog, boost, usage
 
 - Poll : attendre la pompe demandée ; offline après 3 misses ; thread série dédié

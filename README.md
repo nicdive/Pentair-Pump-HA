@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.0**
+**Version actuelle : v0.7.1**
 
 ---
 
@@ -429,7 +429,7 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - En **Contrôle panneau ON**, le statut RS485 n’est plus pollé (affichage figé sur la dernière valeur connue) — voulu pour ne pas voler le bus.
 - Changement de schéma `unique_id` (v0.6.2) : possibles entités orphelines à nettoyer une fois.
 - Pas de support IntelliCenter / EasyTouch en maître concurrent sur le même bus (intégration conçue en **standalone**).
-- Les entités RPM sont masquées / indisponibles sur une pompe **VF** ; les GPM sur une pompe **VS**.
+- Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
 
@@ -459,7 +459,7 @@ Fonctions / usage :
 | Type | RPM | GPM | Notes |
 |------|-----|-----|-------|
 | **VS** | Oui | — | Profil RPM par défaut |
-| **VF** | — | Oui | Profil GPM par défaut |
+| **VF** | Oui | Oui | WhisperFlo : RPM par défaut (comme 0.5.2), GPM via le profil |
 | **VSF** | Oui | Oui | Basculable via **Profil de commande** |
 
 ---

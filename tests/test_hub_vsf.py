@@ -15,7 +15,21 @@ class _FakeBus:
 def test_default_profile_by_type():
     assert _default_profile(PumpType.VS) == CommandProfile.RPM
     assert _default_profile(PumpType.VSF) == CommandProfile.RPM
-    assert _default_profile(PumpType.VF) == CommandProfile.GPM
+    assert _default_profile(PumpType.VF) == CommandProfile.RPM
+
+
+def test_vf_whisperflo_has_rpm_like_0_5_2():
+    hub = PentairHub(
+        bus=_FakeBus(),  # type: ignore[arg-type]
+        app_address=33,
+        pumps=[PumpConfig(index=1, name="WhisperFlo", pump_type=PumpType.VF)],
+    )
+    assert hub.supports_rpm(1) is True
+    assert hub.supports_gpm(1) is True
+    assert hub.get_command_profile(1) == CommandProfile.RPM
+    data = hub.status_dict(1, hub.pumps[0])
+    assert data["supports_rpm"] is True
+    assert data["command_profile"] == "rpm"
 
 
 def test_vsf_command_profile_switch():

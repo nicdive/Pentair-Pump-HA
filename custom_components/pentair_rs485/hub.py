@@ -32,11 +32,8 @@ from .rs485.packets import (
 _LOGGER = logging.getLogger(__name__)
 
 
-def _default_profile(pump_type: PumpType) -> CommandProfile:
-    """Default RS485 command set from configured pump type."""
-    if pump_type == PumpType.VF:
-        return CommandProfile.GPM
-    # VS and VSF default to RPM; VSF can switch to GPM via the select entity.
+def _default_profile(_pump_type: PumpType) -> CommandProfile:
+    """Default RS485 command set. VF WhisperFlo uses RPM, like 0.5.2."""
     return CommandProfile.RPM
 
 
@@ -82,10 +79,11 @@ class PentairHub:
         return next((p for p in self.pumps if p.index == index), None)
 
     def supports_rpm(self, index: int) -> bool:
+        """RPM is available on VS, VF (WhisperFlo) and VSF."""
         pump = self.get_pump(index)
         if pump is None:
             return True
-        return pump.pump_type in (PumpType.VS, PumpType.VSF)
+        return pump.pump_type in (PumpType.VS, PumpType.VF, PumpType.VSF)
 
     def supports_gpm(self, index: int) -> bool:
         pump = self.get_pump(index)

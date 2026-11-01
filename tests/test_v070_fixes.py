@@ -266,7 +266,7 @@ def test_vs_vf_capability_flags():
         PumpConfig(index=3, name="VSF", pump_type=PumpType.VSF),
     )
     assert hub.supports_rpm(1) is True and hub.supports_gpm(1) is False
-    assert hub.supports_rpm(2) is False and hub.supports_gpm(2) is True
+    assert hub.supports_rpm(2) is True and hub.supports_gpm(2) is True
     assert hub.supports_rpm(3) is True and hub.supports_gpm(3) is True
 
 
