@@ -10,6 +10,7 @@ Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** 
 
 - [Prérequis](#prérequis)
 - [Installation](#installation)
+- [Afficheur Lovelace (style LCD pompe)](#afficheur-lovelace-style-lcd-pompe)
 - [Configuration](#configuration)
 - [Entités](#entités)
 - [Utilisation](#utilisation)
@@ -109,6 +110,28 @@ Puis redémarrage HA et ajout de l’intégration.
 ```
 
 Génère `releases/pentair_rs485_vX.Y.Z.zip` et met à jour `pentair_rs485_ha.zip`.
+
+---
+
+## Afficheur Lovelace (style LCD pompe)
+
+Carte optionnelle qui imite l’écran IntelliFlo (RPM, watts, mode, horloge). Elle n’est **pas** obligatoire.
+
+1. Redémarrer HA après installation / mise à jour de l’intégration (la carte JS est servie par le composant).
+2. Tableau de bord → **Ajouter une carte** → **Carte personnalisée**, ou en YAML :
+
+```yaml
+type: custom:pentair-pump-display-card
+entity: switch.pool_pump_marche
+```
+
+`entity` = le switch **Marche**. RPM, puissance, mode, afficheur, etc. sont pris sur le même appareil.
+
+Boutons sous l’écran : Start/Stop, LCD on/off (**Afficheur actif**), fiche entité.
+
+Si la carte n’apparaît pas (Lovelace en YAML) : **Paramètres → Tableaux de bord → Ressources** → `/pentair_rs485/pentair-pump-display-card.js` (type `module`).
+
+Exemple : `lovelace/pump_display.yaml`.
 
 ---
 

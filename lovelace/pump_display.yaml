@@ -1,0 +1,9 @@
+# Carte LCD style IntelliFlo — à coller dans un tableau Lovelace (mode YAML)
+# ou via l’éditeur : « carte personnalisée » → type ci-dessous.
+#
+# entity = switch Marche de la pompe (les autres capteurs sont trouvés tout seuls).
+
+type: custom:pentair-pump-display-card
+entity: switch.pool_pump_marche
+# name: POOL PUMP
+# lock_when_remote: false   # true = écran « DISPLAY NOT ACTIVE » si Afficheur actif est OFF
