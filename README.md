@@ -57,7 +57,23 @@ L’adresse **app** de l’intégration (par défaut **33**) est celle de Home A
 
 ## Installation
 
-### Option A — depuis une release ZIP (recommandé)
+Ce n’est **pas** un module complémentaire Supervisor (add-on Docker). C’est une **intégration custom**. Pour les mises à jour automatiques, passez par **HACS** + les releases GitHub.
+
+### Option A — HACS (recommandé, mises à jour dans HA)
+
+1. Installez [HACS](https://hacs.xyz/) s’il n’est pas déjà là.
+2. **HACS → Intégrations → ⋮ → Dépôts personnalisés**.
+3. URL : `https://github.com/nicdive/Pentair-Pump-HA`  
+   Type : **Integration**.
+4. Cherchez **Pentair RS485**, téléchargez / installez.
+5. Redémarrez Home Assistant.
+6. **Paramètres → Appareils et services → Ajouter une intégration → Pentair RS485**.
+
+Quand une nouvelle version est publiée sur GitHub (tag `vX.Y.Z` = champ `version` du `manifest.json`), HACS propose la mise à jour. Vous validez, HA redémarre, c’est tout.
+
+Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entités (`unique_id`). Supprimez les orphelines une fois.
+
+### Option B — ZIP manuel
 
 1. Téléchargez `releases/pentair_rs485_v0.7.0.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
@@ -65,13 +81,13 @@ L’adresse **app** de l’intégration (par défaut **33**) est celle de Home A
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.6.4.zip -d custom_components/
+unzip -o /chemin/vers/pentair_rs485_v0.7.0.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.
-4. **Paramètres → Appareils et services → Ajouter une intégration → Pentair RS485**.
+4. Ajoutez l’intégration si ce n’est pas déjà fait.
 
-### Option B — copie manuelle
+### Option C — copie manuelle
 
 ```bash
 cp -r custom_components/pentair_rs485 /config/custom_components/
@@ -79,9 +95,12 @@ cp -r custom_components/pentair_rs485 /config/custom_components/
 
 Puis redémarrage HA et ajout de l’intégration.
 
-### Option C — HACS (manuel)
+### Publier une version (mainteneur)
 
-Ajoutez le dépôt GitHub en **intégration custom**, installez, redémarrez, puis ajoutez l’intégration.
+1. Monter `version` dans `custom_components/pentair_rs485/manifest.json`.
+2. Commit + merge sur `main`.
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`  
+   L’action GitHub construit le zip et ouvre la release ; HACS voit la mise à jour.
 
 ### Build local d’un zip
 

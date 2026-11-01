@@ -69,6 +69,10 @@ Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
 ## Déploiement
 
+**Recommandé** : HACS → dépôt custom `https://github.com/nicdive/Pentair-Pump-HA` (catégorie Integration). Les mises à jour suivent les releases GitHub (`vX.Y.Z`).
+
+ZIP manuel :
+
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485

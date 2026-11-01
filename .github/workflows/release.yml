@@ -1,0 +1,39 @@
+name: GitHub Release
+
+# HACS watches GitHub Releases. Tag vX.Y.Z (must match manifest.json).
+# Example: bump version in manifest → commit → git tag v0.7.1 → git push --tags
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify tag matches manifest version
+        run: |
+          VERSION="$(python3 -c "import json; print(json.load(open('custom_components/pentair_rs485/manifest.json'))['version'])")"
+          TAG="${GITHUB_REF_NAME#v}"
+          echo "manifest=${VERSION} tag=${TAG}"
+          if [ "$TAG" != "$VERSION" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match manifest version ${VERSION}" >&2
+            exit 1
+          fi
+
+      - name: Build release zip
+        run: ./build_release.sh
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Pentair RS485 ${{ github.ref_name }}"
+          generate_release_notes: true
+          files: |
+            pentair_rs485_ha.zip
+            releases/pentair_rs485_v*.zip
