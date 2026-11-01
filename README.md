@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.1**
+**Version actuelle : v0.7.2**
 
 ---
 
@@ -76,13 +76,13 @@ Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entit
 
 ### Option B — ZIP manuel
 
-1. Téléchargez `releases/pentair_rs485_v0.7.1.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.7.2.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.7.1.zip -d custom_components/
+unzip -o /chemin/vers/pentair_rs485_v0.7.2.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.
@@ -166,7 +166,9 @@ Laisser le capteur vide pour désactiver complètement le boost.
 
 ### Reconfigurer port / pompes
 
-**Intégration → ⋮ → Reconfigurer** : changer le port, l’adresse bus, puis redéfinir la liste des pompes.
+**Intégration → ⋮ → Reconfigurer** : port, adresse bus, et la liste **Pompes à conserver**.
+
+Décochez une pompe pour la retirer (l’appareil et ses entités sont supprimés au rechargement). Inutile de ressaisir celles que vous gardez. Cochez **Ajouter une autre pompe** seulement pour en créer une nouvelle.
 
 ---
 
@@ -455,6 +457,11 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.7.2
+
+- **Reconfigurer** affiche les pompes déjà enregistrées : décochez pour enlever une pompe fantôme (ex. VS indisponible).
+- Les appareils / entités orphelins sont retirés du registre HA au rechargement.
 
 ## Nouveautés v0.7.0
 

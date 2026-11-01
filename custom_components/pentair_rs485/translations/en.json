@@ -21,16 +21,19 @@
       },
       "reconfigure": {
         "title": "Reconfigure Pentair RS485",
-        "description": "Change serial port / bus address, then re-add pumps.",
+        "description": "Uncheck any pump to remove it. Submit saves the list — you do not need to re-enter pumps you keep.",
         "data": {
           "port": "Serial port",
-          "app_address": "Bus address (appAddress)"
+          "app_address": "Bus address (appAddress)",
+          "keep_pumps": "Pumps to keep",
+          "add_another": "Add another pump"
         }
       }
     },
     "error": {
       "pump_exists": "A pump with this index is already configured.",
-      "cannot_connect": "Could not open the serial port. Check the path, USB cable, and permissions (dialout)."
+      "cannot_connect": "Could not open the serial port. Check the path, USB cable, and permissions (dialout).",
+      "keep_one_pump": "Keep at least one pump, or check “Add another pump”."
     },
     "abort": {
       "already_configured": "This port is already configured.",

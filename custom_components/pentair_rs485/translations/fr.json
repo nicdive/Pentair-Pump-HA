@@ -20,16 +20,19 @@
       },
       "reconfigure": {
         "title": "Reconfigurer Pentair RS485",
-        "description": "Modifier le port série / adresse bus, puis redéfinir les pompes.",
+        "description": "Décochez la pompe à retirer, puis Valider. Inutile de ressaisir les pompes que vous gardez.",
         "data": {
           "port": "Port série",
-          "app_address": "Adresse bus (appAddress)"
+          "app_address": "Adresse bus (appAddress)",
+          "keep_pumps": "Pompes à conserver",
+          "add_another": "Ajouter une autre pompe"
         }
       }
     },
     "error": {
       "pump_exists": "Une pompe avec cet index est déjà configurée.",
-      "cannot_connect": "Impossible d'ouvrir le port série. Vérifiez le chemin, le câble USB et les droits (groupe dialout)."
+      "cannot_connect": "Impossible d'ouvrir le port série. Vérifiez le chemin, le câble USB et les droits (groupe dialout).",
+      "keep_one_pump": "Gardez au moins une pompe, ou cochez « Ajouter une autre pompe »."
     },
     "abort": {
       "reconfigure_successful": "Reconfiguration réussie"

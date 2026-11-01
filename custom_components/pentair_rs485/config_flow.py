@@ -12,9 +12,11 @@ from homeassistant.helpers import selector
 import homeassistant.helpers.config_validation as cv
 
 from .const import (
+    CONF_ADD_ANOTHER,
     CONF_APP_ADDRESS,
     CONF_COVER_ENTITY,
     CONF_COVER_INVERT,
+    CONF_KEEP_PUMPS,
     CONF_PUMP_INDEX,
     CONF_PUMP_NAME,
     CONF_PUMP_TYPE,
@@ -28,6 +30,7 @@ from .const import (
     MIN_SCAN_INTERVAL,
     PUMP_TYPES,
 )
+from .device_cleanup import filter_kept_pumps
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,9 +106,52 @@ def _pump_schema(defaults: dict[str, Any] | None = None) -> vol.Schema:
             vol.Required(
                 CONF_PUMP_NAME, default=defaults.get(CONF_PUMP_NAME, "Pool Pump")
             ): str,
-            vol.Optional("add_another", default=False): bool,
+            vol.Optional(CONF_ADD_ANOTHER, default=False): bool,
         }
     )
+
+
+def _reconfigure_schema(
+    entry: config_entries.ConfigEntry,
+    port: str | None = None,
+    app_address: int | None = None,
+    keep: list[str] | None = None,
+) -> vol.Schema:
+    schema = _port_schema(
+        port if port is not None else entry.data.get(CONF_PORT),
+        app_address
+        if app_address is not None
+        else entry.data.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
+    )
+    pumps = list(entry.data.get(CONF_PUMPS, []))
+    extra: dict[Any, Any] = {}
+    if pumps:
+        options = [
+            selector.SelectOptionDict(
+                value=str(p[CONF_PUMP_INDEX]),
+                label=(
+                    f"{p[CONF_PUMP_NAME]} ({p[CONF_PUMP_TYPE]}, "
+                    f"index {p[CONF_PUMP_INDEX]})"
+                ),
+            )
+            for p in pumps
+        ]
+        default_keep = (
+            keep
+            if keep is not None
+            else [str(p[CONF_PUMP_INDEX]) for p in pumps]
+        )
+        extra[
+            vol.Required(CONF_KEEP_PUMPS, default=default_keep)
+        ] = selector.SelectSelector(
+            selector.SelectSelectorConfig(
+                options=options,
+                multiple=True,
+                mode=selector.SelectSelectorMode.LIST,
+            )
+        )
+    extra[vol.Optional(CONF_ADD_ANOTHER, default=False)] = bool
+    return vol.Schema({**schema.schema, **extra})
 
 
 class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -154,7 +200,7 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         CONF_PUMP_NAME: user_input[CONF_PUMP_NAME],
                     }
                 )
-                if user_input.get("add_another"):
+                if user_input.get(CONF_ADD_ANOTHER):
                     return self.async_show_form(
                         step_id="pump",
                         data_schema=_pump_schema(),
@@ -172,35 +218,56 @@ class PentairRS485ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """Change serial port / app address, then re-enter pump list."""
+        """Change port / address, keep or drop listed pumps, optionally add."""
         entry = self._reconfigure_entry()
         self.context["reconfigure"] = True
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             port = user_input[CONF_PORT]
             error = await _async_test_port(self.hass, port)
             if error:
                 _LOGGER.warning("Cannot open RS485 port %s: %s", port, error)
-                return self.async_show_form(
-                    step_id="reconfigure",
-                    data_schema=_port_schema(
-                        port,
-                        user_input.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
-                    ),
-                    errors={"base": "cannot_connect"},
+                errors["base"] = "cannot_connect"
+            else:
+                kept = filter_kept_pumps(
+                    list(entry.data.get(CONF_PUMPS, [])),
+                    user_input.get(CONF_KEEP_PUMPS, []),
                 )
-            await self.async_set_unique_id(port)
-            self.context["port"] = port
-            self.context["app_address"] = user_input[CONF_APP_ADDRESS]
-            self.context["pumps"] = []
-            return await self.async_step_pump()
+                add_another = bool(user_input.get(CONF_ADD_ANOTHER))
+                if not kept and not add_another:
+                    errors["base"] = "keep_one_pump"
+                else:
+                    await self.async_set_unique_id(port)
+                    self.context["port"] = port
+                    self.context["app_address"] = user_input[CONF_APP_ADDRESS]
+                    self.context["pumps"] = kept
+                    if add_another:
+                        return await self.async_step_pump()
+                    return await self._async_finish_reconfigure()
 
+        keep = None
+        if user_input is not None:
+            raw_keep = user_input.get(CONF_KEEP_PUMPS)
+            if raw_keep is None:
+                keep = []
+            elif isinstance(raw_keep, (str, int)):
+                keep = [str(raw_keep)]
+            else:
+                keep = [str(x) for x in raw_keep]
         return self.async_show_form(
             step_id="reconfigure",
-            data_schema=_port_schema(
-                entry.data.get(CONF_PORT),
-                entry.data.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS),
+            data_schema=_reconfigure_schema(
+                entry,
+                user_input[CONF_PORT] if user_input else None,
+                (
+                    user_input.get(CONF_APP_ADDRESS, DEFAULT_APP_ADDRESS)
+                    if user_input
+                    else None
+                ),
+                keep,
             ),
+            errors=errors,
         )
 
     def _reconfigure_entry(self) -> config_entries.ConfigEntry:

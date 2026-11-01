@@ -1,4 +1,4 @@
-"""The Pentair RS485 Pump integration v0.7.1."""
+"""The Pentair RS485 Pump integration v0.7.2."""
 
 DOMAIN = "pentair_rs485"
 PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]
@@ -81,6 +81,11 @@ async def async_setup_entry(hass, entry):
     # RestoreEntity runs during platform setup — must happen BEFORE first RS485
     # poll so panel-control / desired_run are known and we don't steal the panel.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    from .device_cleanup import async_remove_orphan_pumps
+
+    async_remove_orphan_pumps(hass, entry, {p.index for p in pumps})
+
     await cover_boost.async_setup()
     await coordinator.async_refresh()
 
