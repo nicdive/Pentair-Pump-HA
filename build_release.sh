@@ -35,8 +35,6 @@ rm -f "$VERSIONED_ZIP" "$DISPLAY_ZIP"
     -x "*.pyc" -x "*__pycache__*" -x "*.DS_Store"
 )
 
-cp "$VERSIONED_ZIP" "$LATEST_ZIP"
-
 if [[ -d "$DISPLAY_DIR" ]]; then
   echo "Building pentair_pump_display v${VERSION}..."
   (
@@ -47,6 +45,16 @@ if [[ -d "$DISPLAY_DIR" ]]; then
   cp "$DISPLAY_ZIP" "$DISPLAY_LATEST"
   echo "Display: $DISPLAY_ZIP"
 fi
+
+# HACS downloads this zip: both integrations so the house HA can
+# add only the Lovelace card, and the pool HA still gets the pump.
+echo "Building HACS zip (rs485 + display)..."
+rm -f "$LATEST_ZIP"
+(
+  cd "$ROOT/custom_components"
+  zip -r "$LATEST_ZIP" pentair_rs485 pentair_pump_display \
+    -x "*.pyc" -x "*__pycache__*" -x "*.DS_Store"
+)
 
 echo "Saved: $VERSIONED_ZIP"
 echo "Latest: $LATEST_ZIP"

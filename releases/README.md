@@ -4,6 +4,11 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.7.5 — HACS sur le HA principal
+
+- Le zip HACS contient `pentair_rs485` **et** `pentair_pump_display`
+- Même dépôt custom : piscine → ajouter RS485 ; principal → ajouter l’afficheur seulement
+
 ## v0.7.4 — Afficheur seul (HA principal)
 
 - Nouveau module `pentair_pump_display` (zip dédié) : carte Lovelace, pas de pompe
@@ -96,7 +101,7 @@ ZIP manuel :
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o pentair_rs485_v0.7.4.zip -d custom_components/
+unzip -o pentair_rs485_v0.7.5.zip -d custom_components/
 ```
 
 Puis redémarrer HA. Doc complète : [README racine](../README.md). Pour le volet : **Paramètres → Intégrations → Pentair RS485 → Configurer**.

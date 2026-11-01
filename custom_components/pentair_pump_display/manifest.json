@@ -12,6 +12,6 @@
   "loggers": [
     "custom_components.pentair_pump_display"
   ],
-  "version": "0.7.4",
+  "version": "0.7.5",
   "homeassistant": "2024.2.0"
 }

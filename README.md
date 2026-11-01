@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.4**
+**Version actuelle : v0.7.5**
 
 ---
 
@@ -62,13 +62,19 @@ Ce n’est **pas** un module complémentaire Supervisor (add-on Docker). C’est
 
 ### Option A — HACS (recommandé, mises à jour dans HA)
 
+Même dépôt custom pour les deux HA. HACS installe les **deux** dossiers ; vous n’ajoutez que l’intégration dont vous avez besoin.
+
 1. Installez [HACS](https://hacs.xyz/) s’il n’est pas déjà là.
 2. **HACS → Intégrations → ⋮ → Dépôts personnalisés**.
 3. URL : `https://github.com/nicdive/Pentair-Pump-HA`  
    Type : **Integration**.
-4. Cherchez **Pentair RS485**, téléchargez / installez.
+4. Cherchez **Pentair RS485 / afficheur**, téléchargez / installez.
 5. Redémarrez Home Assistant.
-6. **Paramètres → Appareils et services → Ajouter une intégration → Pentair RS485**.
+6. **Paramètres → Appareils et services → Ajouter une intégration** :
+   - HA **piscine** : **Pentair RS485** (USB + pompe)
+   - HA **principal** : **Pentair afficheur pompe** seulement (carte Lovelace, Remote HA)
+
+Ne configurez **pas** Pentair RS485 sur le HA principal (pas de clé USB).
 
 Quand une nouvelle version est publiée sur GitHub (tag `vX.Y.Z` = champ `version` du `manifest.json`), HACS propose la mise à jour. Vous validez, HA redémarre, c’est tout.
 
@@ -76,13 +82,13 @@ Si vous venez d’une 0.5.x : au premier passage en 0.6.2+, HA recrée les entit
 
 ### Option B — ZIP manuel
 
-1. Téléchargez `releases/pentair_rs485_v0.7.4.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
+1. Téléchargez `releases/pentair_rs485_v0.7.5.zip` (ou `pentair_rs485_ha.zip` à la racine = dernière version).
 2. Sur le host HA :
 
 ```bash
 cd /config
 rm -rf custom_components/pentair_rs485
-unzip -o /chemin/vers/pentair_rs485_v0.7.4.zip -d custom_components/
+unzip -o /chemin/vers/pentair_rs485_v0.7.5.zip -d custom_components/
 ```
 
 3. Redémarrez Home Assistant.
@@ -135,12 +141,11 @@ Si la carte n’apparaît pas (Lovelace YAML) : **Paramètres → Tableaux de bo
 
 ### Sur le HA principal (Remote HA, sans pompe)
 
-N’installez **pas** `pentair_rs485` (pas de clé USB ici). Installez le module **Pentair afficheur pompe** :
+Via **HACS**, même dépôt que la piscine (voir Option A). Après redémarrage : **Ajouter une intégration → Pentair afficheur pompe**. Ne configurez pas Pentair RS485.
 
-1. Téléchargez `releases/pentair_pump_display_v0.7.4.zip`.
-2. Dézippez dans `/config/custom_components/` (dossier `pentair_pump_display`).
-3. Redémarrez HA → **Ajouter une intégration → Pentair afficheur pompe**.
-4. Carte Lovelace (IDs tels qu’ils sont sur le HA principal) :
+À la main : `releases/pentair_pump_display_v0.7.5.zip` dans `custom_components/`.
+
+Carte Lovelace (IDs tels qu’ils sont sur le HA principal) :
 
 ```yaml
 type: custom:pentair-pump-display-card
@@ -480,6 +485,10 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.7.5
+
+- HACS installe pompe **et** afficheur : sur le HA principal, même dépôt custom, n’ajouter que **Pentair afficheur pompe**.
 
 ## Nouveautés v0.7.4
 
