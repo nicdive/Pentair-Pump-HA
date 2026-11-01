@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.7.6**
+**Version actuelle : v0.7.7**
 
 ---
 
@@ -68,13 +68,13 @@ HACS n’accepte **qu’une** intégration par dépôt. Un seul module : **Penta
 2. **HACS → Intégrations → ⋮ → Dépôts personnalisés**.
 3. URL : `https://github.com/nicdive/Pentair-Pump-HA`  
    Type : **Integration**.
-4. Cherchez **Pentair RS485**, téléchargez / installez **0.7.6+**.
+4. Cherchez **Pentair RS485**, téléchargez / installez **0.7.7+**.
 5. Redémarrez Home Assistant (obligatoire).
-6. **Paramètres → Appareils et services → Ajouter une intégration → Pentair RS485** :
-   - HA **piscine** : **Pompe — USB RS485**
-   - HA **principal** : **Afficheur — Remote HA (sans USB)**
+6. **Paramètres → Appareils et services → Ajouter une intégration** :
+   - HA **piscine** : **Pentair RS485** → **Pompe — USB RS485**
+   - HA **principal** : **Pentair afficheur pompe** (ou Pentair RS485 → **Afficheur — Remote HA**)
 
-Si l’intégration n’apparaît pas après un install HACS 0.7.5 : mettez à jour en 0.7.6, redémarrez, et si besoin supprimez les dossiers imbriqués sous `custom_components/pentair_rs485/` puis réinstallez.
+Si HACS dit `No manifest.json … pentair_pump_display` : installez **0.7.7** (ce dossier est de nouveau présent).
 
 Quand une nouvelle version est publiée sur GitHub (tag `vX.Y.Z` = champ `version` du `manifest.json`), HACS propose la mise à jour. Vous validez, HA redémarre, c’est tout.
 
@@ -484,6 +484,10 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.7.7
+
+- Rétablit `custom_components/pentair_pump_display` : HACS le cherchait encore après 0.7.6.
 
 ## Nouveautés v0.7.6
 

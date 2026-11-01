@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pentair pump display",
+        "description": "Installs the IntelliFlo LCD Lovelace card only. No USB adapter, no pump. Point the card at entities mirrored by Remote Home Assistant (Power switch + sensors)."
+      }
+    },
+    "abort": {
+      "already_configured": "The pump display is already installed."
+    }
+  }
+}

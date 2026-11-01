@@ -4,6 +4,10 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.7.7 — HACS « No manifest.json pentair_pump_display »
+
+- Remet le dossier `pentair_pump_display` attendu par HACS après l’install 0.7.5
+
 ## v0.7.6 — HACS afficheur (un seul module)
 
 - Setup : Pompe USB **ou** Afficheur Remote HA
