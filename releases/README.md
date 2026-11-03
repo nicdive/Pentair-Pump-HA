@@ -4,6 +4,10 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.8.1 — Programmes sur l’afficheur Lovelace
+
+- Carte LCD : boutons **1 / 2 / 3 / 4** à la place de **Entités**
+
 ## v0.8.0 — Un module, même nom qu’en 0.7.3
 
 - HACS : **Pentair RS485** uniquement

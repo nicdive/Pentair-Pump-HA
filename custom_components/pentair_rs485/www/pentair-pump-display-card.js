@@ -10,6 +10,10 @@ const SIBLING_KEYS = {
   drive: ["drive_state"],
   clock: ["clock"],
   error: ["error"],
+  program_1: ["run_program_1"],
+  program_2: ["run_program_2"],
+  program_3: ["run_program_3"],
+  program_4: ["run_program_4"],
 };
 
 const ID_HINTS = {
@@ -22,9 +26,13 @@ const ID_HINTS = {
   drive: ["_etat", "_drive_state"],
   clock: ["_horloge", "_clock"],
   error: ["_erreur", "_error"],
+  program_1: ["_lancer_programme_1", "_run_program_1"],
+  program_2: ["_lancer_programme_2", "_run_program_2"],
+  program_3: ["_lancer_programme_3", "_run_program_3"],
+  program_4: ["_lancer_programme_4", "_run_program_4"],
 };
 
-const LOOKUP_DOMAINS = ["sensor", "switch", "number", "binary_sensor"];
+const LOOKUP_DOMAINS = ["sensor", "switch", "number", "binary_sensor", "button"];
 
 function siblingEntity(hass, anchor, kind, config) {
   const override = config && config[kind];
@@ -67,6 +75,14 @@ function st(hass, eid) {
   return hass.states[eid] || null;
 }
 
+function activeProgram(modeState) {
+  if (!modeState) return 0;
+  const match = String(modeState)
+    .toLowerCase()
+    .match(/(?:ext_program_|programme\s*|program\s*|speed_|vitesse\s*)(\d)/);
+  return match ? Number(match[1]) : 0;
+}
+
 class PentairPumpDisplayCard extends HTMLElement {
   constructor() {
     super();
@@ -88,7 +104,7 @@ class PentairPumpDisplayCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 4;
+    return 5;
   }
 
   static getStubConfig() {
@@ -124,6 +140,15 @@ class PentairPumpDisplayCard extends HTMLElement {
     const clockVal = (clock && clock.state) || "--:--";
     const errVal = error && error.state && error.state !== "ok" && error.state !== "OK" ? error.state : "";
     const name = this._config.name || (power && power.attributes.friendly_name) || "INTELLIFLO";
+    const runningProg = on ? activeProgram(mode && mode.state) : 0;
+    const progButtons = [1, 2, 3, 4]
+      .map((n) => {
+        const eid = this._pick(`program_${n}`);
+        const cls = runningProg === n ? " active" : "";
+        const disabled = eid ? "" : " disabled";
+        return `<button data-act="prog${n}" class="${cls}"${disabled} title="Programme ${n}">${n}</button>`;
+      })
+      .join("");
 
     this.shadowRoot.innerHTML = `
       <style>
@@ -196,9 +221,15 @@ class PentairPumpDisplayCard extends HTMLElement {
         }
         .keys {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: 1fr 1fr;
           gap: 8px;
           margin-top: 10px;
+        }
+        .progs {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+          margin-top: 8px;
         }
         button {
           background: #222;
@@ -212,6 +243,15 @@ class PentairPumpDisplayCard extends HTMLElement {
           cursor: pointer;
         }
         button:hover { background: #2c2c2c; }
+        button.active {
+          background: #1c3d12;
+          color: #b6ff6a;
+          border-color: #3d6b22;
+        }
+        button:disabled {
+          opacity: .35;
+          cursor: default;
+        }
         .off .rpm, .off .unit, .off .grid { opacity: .45; }
       </style>
       <div class="bezel">
@@ -234,8 +274,8 @@ class PentairPumpDisplayCard extends HTMLElement {
         <div class="keys">
           <button data-act="power">${on ? "Stop" : "Start"}</button>
           <button data-act="display">${remote ? "LCD on" : "LCD off"}</button>
-          <button data-act="more">Entités</button>
         </div>
+        <div class="progs">${progButtons}</div>
       </div>
     `;
 
@@ -271,14 +311,10 @@ class PentairPumpDisplayCard extends HTMLElement {
       });
       return;
     }
-    if (act === "more") {
-      this.dispatchEvent(
-        new CustomEvent("hass-more-info", {
-          bubbles: true,
-          composed: true,
-          detail: { entityId: this._config.entity },
-        })
-      );
+    if (act && act.startsWith("prog")) {
+      const eid = this._pick(`program_${act.slice(-1)}`);
+      if (!eid) return;
+      hass.callService("button", "press", { entity_id: eid });
     }
   }
 }
@@ -289,6 +325,6 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: CARD_TYPE,
   name: "Pentair — afficheur pompe",
-  description: "Écran LCD style IntelliFlo (RPM, watts, mode)",
+  description: "Écran LCD style IntelliFlo (RPM, watts, programmes 1–4)",
   preview: true,
 });

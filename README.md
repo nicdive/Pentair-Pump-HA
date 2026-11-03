@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.8.0**
+**Version actuelle : v0.8.1**
 
 ---
 
@@ -133,9 +133,9 @@ type: custom:pentair-pump-display-card
 entity: switch.pump_1_marche
 ```
 
-`entity` = le switch **Marche**. RPM, puissance, mode, afficheur sont trouvés sur le même appareil.
+`entity` = le switch **Marche**. RPM, puissance, mode, afficheur et programmes 1–4 sont trouvés sur le même appareil.
 
-Boutons : Start/Stop, LCD on/off (**Afficheur actif**), fiche entité.
+Boutons : Start/Stop, LCD on/off (**Afficheur actif**), **1 / 2 / 3 / 4** (lancer le programme, comme sur la pompe). Le programme en cours est allumé.
 
 Si la carte n’apparaît pas (Lovelace YAML) : **Paramètres → Tableaux de bord → Ressources** → `/pentair_rs485/pentair-pump-display-card.js` (type `module`).
 
@@ -155,7 +155,7 @@ watts: sensor.pump_1_puissance
 mode: sensor.pump_1_mode_de_fonctionnement
 ```
 
-Remote HA doit remonter au moins `switch` + `sensor` (Marche, Afficheur, RPM, watts, mode).
+Remote HA doit remonter `switch` + `sensor` + `button` (Marche, Afficheur, RPM, watts, mode, **Lancer programme 1–4**). Sans les boutons, 1/2/3/4 restent grisés.
 
 Exemples : `lovelace/pump_display.yaml` (piscine) et `lovelace/pump_display_remote.yaml` (principal).
 
@@ -484,6 +484,10 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.8.1
+
+- Carte Lovelace : plus de bouton **Entités**. À la place, les **4 programmes** de la pompe (1–4).
 
 ## Nouveautés v0.8.0
 

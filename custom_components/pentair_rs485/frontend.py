@@ -10,7 +10,8 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 _CARD = "pentair-pump-display-card.js"
-_URL = f"/{DOMAIN}/{_CARD}"
+_CARD_VERSION = "0.8.1"
+_URL = f"/{DOMAIN}/{_CARD}?v={_CARD_VERSION}"
 _REGISTERED = False
 
 
