@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.8.1**
+**Version actuelle : v0.8.2**
 
 ---
 
@@ -137,7 +137,16 @@ entity: switch.pump_1_marche
 
 Boutons : Start/Stop, LCD on/off (**Afficheur actif**), **1 / 2 / 3 / 4** (lancer le programme, comme sur la pompe). Le programme en cours est allumé.
 
-Si la carte n’apparaît pas (Lovelace YAML) : **Paramètres → Tableaux de bord → Ressources** → `/pentair_rs485/pentair-pump-display-card.js` (type `module`).
+Si la carte n’apparaît pas (**Custom element not found**, HA 2026.8 / Marketplace 2026.11) :
+
+1. Vérifier que l’intégration **Pentair RS485** est bien ajoutée (mode pompe ou afficheur).
+2. **Paramètres → Tableaux de bord → Ressources** → ajouter (type **module**) :
+
+```text
+/local/community/pentair_rs485/pentair-pump-display-card.js?v=0.8.2
+```
+
+3. Recharger le tableau de bord (parfois un redémarrage HA + refresh navigateur).
 
 ### Sur le HA principal (Remote HA, sans pompe)
 
@@ -484,6 +493,11 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.8.2
+
+- Carte Lovelace : ressource dashboard persistante (`/local/community/…`) pour **HA 2026.8+ / Marketplace 2026.11** (corrige *Custom element not found*).
+- Licence MIT + icône `brand/icon.png` pour HACS / Marketplace validate.
 
 ## Nouveautés v0.8.1
 

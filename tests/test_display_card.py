@@ -36,3 +36,9 @@ def test_active_program_parses_mode_labels() -> None:
     assert "function activeProgram" in src
     assert "ext_program_" in src
     assert "programme" in src
+
+
+def test_card_guards_double_define() -> None:
+    src = _src()
+    assert "if (!customElements.get(CARD_TYPE))" in src
+    assert "customElements.define(CARD_TYPE" in src

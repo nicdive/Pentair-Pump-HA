@@ -4,6 +4,10 @@
   "codeowners": [
     "@nico"
   ],
+  "after_dependencies": [
+    "frontend",
+    "lovelace"
+  ],
   "config_flow": true,
   "documentation": "https://github.com/nicdive/Pentair-Pump-HA",
   "issue_tracker": "https://github.com/nicdive/Pentair-Pump-HA/issues",
@@ -15,6 +19,6 @@
   "requirements": [
     "pyserial>=3.5"
   ],
-  "version": "0.8.1",
+  "version": "0.8.2",
   "homeassistant": "2024.2.0"
 }

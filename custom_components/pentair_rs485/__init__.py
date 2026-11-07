@@ -1,4 +1,4 @@
-"""The Pentair RS485 Pump integration v0.8.1."""
+"""The Pentair RS485 Pump integration v0.8.2."""
 
 DOMAIN = "pentair_rs485"
 PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]
@@ -6,6 +6,9 @@ PLATFORMS = ["switch", "number", "sensor", "button", "select", "binary_sensor"]
 
 async def async_setup(hass, config):
     """Set up the Pentair RS485 integration."""
+    from .frontend import async_register_frontend
+
+    await async_register_frontend(hass)
     return True
 
 

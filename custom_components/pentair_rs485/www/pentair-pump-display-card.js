@@ -319,12 +319,16 @@ class PentairPumpDisplayCard extends HTMLElement {
   }
 }
 
-customElements.define(CARD_TYPE, PentairPumpDisplayCard);
+if (!customElements.get(CARD_TYPE)) {
+  customElements.define(CARD_TYPE, PentairPumpDisplayCard);
+}
 
 window.customCards = window.customCards || [];
-window.customCards.push({
-  type: CARD_TYPE,
-  name: "Pentair — afficheur pompe",
-  description: "Écran LCD style IntelliFlo (RPM, watts, programmes 1–4)",
-  preview: true,
-});
+if (!window.customCards.some((card) => card.type === CARD_TYPE)) {
+  window.customCards.push({
+    type: CARD_TYPE,
+    name: "Pentair — afficheur pompe",
+    description: "Écran LCD style IntelliFlo (RPM, watts, programmes 1–4)",
+    preview: true,
+  });
+}

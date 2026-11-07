@@ -4,6 +4,11 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.8.2 — Carte Lovelace sous HA 2026.11
+
+- Enregistre la carte comme ressource Lovelace (`/local/community/`) : plus de *Custom element not found* après Marketplace
+- Licence MIT + icône de marque
+
 ## v0.8.1 — Programmes sur l’afficheur Lovelace
 
 - Carte LCD : boutons **1 / 2 / 3 / 4** à la place de **Entités**
