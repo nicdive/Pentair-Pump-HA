@@ -136,7 +136,7 @@ class PentairPumpDisplayCard extends HTMLElement {
     const wattVal = watts && watts.state !== "unavailable" ? watts.state : "---";
     const gpmVal = gpm && gpm.state !== "unavailable" && Number(gpm.state) > 0 ? gpm.state : null;
     const modeVal = (mode && mode.state) || (on ? "RUN" : "OFF");
-    const driveVal = (drive && drive.state) || "";
+    const driveVal = on ? (drive && drive.state) || "" : "OFF";
     const clockVal = (clock && clock.state) || "--:--";
     const errVal = error && error.state && error.state !== "ok" && error.state !== "OK" ? error.state : "";
     const name = this._config.name || (power && power.attributes.friendly_name) || "INTELLIFLO";

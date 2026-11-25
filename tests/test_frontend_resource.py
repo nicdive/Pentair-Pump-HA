@@ -11,7 +11,7 @@ from custom_components.pentair_rs485.frontend import (
 def test_local_url_is_marketplace_path() -> None:
     assert _LOCAL_URL.startswith("/local/community/pentair_rs485/")
     assert f"?v={_CARD_VERSION}" in _LOCAL_URL
-    assert _CARD_VERSION == "0.8.2"
+    assert _CARD_VERSION == "0.8.3"
 
 
 def test_pick_creates_when_missing() -> None:

@@ -42,3 +42,8 @@ def test_card_guards_double_define() -> None:
     src = _src()
     assert "if (!customElements.get(CARD_TYPE))" in src
     assert "customElements.define(CARD_TYPE" in src
+
+
+def test_card_shows_off_drive_when_stopped() -> None:
+    src = _src()
+    assert 'const driveVal = on ? (drive && drive.state) || "" : "OFF";' in src

@@ -9,6 +9,7 @@ from custom_components.pentair_rs485.device_cleanup import (
     current_keep_device_identifiers,
     device_pump_index,
     filter_kept_pumps,
+    is_cover_boost_unique_id,
     should_remove_device,
     should_remove_entity,
     unique_id_pump_index,
@@ -99,3 +100,13 @@ def test_unknown_device_on_entry_is_removed() -> None:
         is True
     )
     assert should_remove_device(entry, set(), keep) is True
+
+
+def test_cover_boost_unique_ids() -> None:
+    entry = "abc123"
+    assert is_cover_boost_unique_id(entry, "abc123_1_cover_boost") is True
+    assert is_cover_boost_unique_id(entry, "abc123_1_cover_boost_speed") is True
+    assert is_cover_boost_unique_id(entry, "abc123_1_cover_boost_active") is True
+    assert is_cover_boost_unique_id(entry, "abc123_1_cover_boost_profile") is True
+    assert is_cover_boost_unique_id(entry, "abc123_1_power") is False
+    assert is_cover_boost_unique_id(entry, "abc123_bus_online") is False

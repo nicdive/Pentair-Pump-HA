@@ -2,7 +2,7 @@
 
 Intégration custom pour piloter une ou plusieurs pompes **Pentair IntelliFlo** (VS / VF / VSF) en **standalone** via un adaptateur **USB RS485**, sans automate Pentair (EasyTouch / IntelliCenter).
 
-**Version actuelle : v0.8.2**
+**Version actuelle : v0.8.3**
 
 ---
 
@@ -143,7 +143,7 @@ Si la carte n’apparaît pas (**Custom element not found**, HA 2026.8 / Marketp
 2. **Paramètres → Tableaux de bord → Ressources** → ajouter (type **module**) :
 
 ```text
-/local/community/pentair_rs485/pentair-pump-display-card.js?v=0.8.2
+/local/community/pentair_rs485/pentair-pump-display-card.js?v=0.8.3
 ```
 
 3. Recharger le tableau de bord (parfois un redémarrage HA + refresh navigateur).
@@ -306,6 +306,8 @@ Indépendant du switch **Contrôle panneau** (qui, lui, bloque complètement HA)
 ---
 
 ## Boost volet
+
+Sans capteur volet dans **Configurer**, ces entités n’existent pas (et les anciennes indisponibles sont retirées).
 
 Quand le capteur configuré passe à **ouvert** :
 
@@ -493,6 +495,11 @@ Logs utiles : **Paramètres → Système → Journaux**, filtre `pentair_rs485`.
 - Les entités GPM sont masquées / indisponibles sur une pompe **VS**. **VF** (WhisperFlo) garde RPM *et* GPM, comme en 0.5.2.
 
 ---
+
+## Nouveautés v0.8.3
+
+- Sans capteur volet dans les options, les entités **boost volet** ne sont plus créées et les anciennes (indisponibles) sont supprimées au rechargement.
+- Carte LCD : **OFF** à la place de RUNNING quand Marche est éteint.
 
 ## Nouveautés v0.8.2
 

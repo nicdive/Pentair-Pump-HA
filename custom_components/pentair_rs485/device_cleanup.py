@@ -12,6 +12,15 @@ from typing import Any
 
 from .const import CONF_PUMP_INDEX, DOMAIN
 
+COVER_BOOST_KEYS = frozenset(
+    {
+        "cover_boost",
+        "cover_boost_speed",
+        "cover_boost_active",
+        "cover_boost_profile",
+    }
+)
+
 
 def filter_kept_pumps(pumps: list[dict], keep: Any) -> list[dict]:
     """Keep only pumps whose index is in the reconfigure multi-select."""
@@ -64,6 +73,22 @@ def is_kept_entity(entry_id: str, unique_id: str, keep_indexes: set[int]) -> boo
     return index is not None and index in keep_indexes
 
 
+def entity_translation_key(entry_id: str, unique_id: str) -> str | None:
+    """Return the translation_key suffix of a current-format unique_id."""
+    prefix = f"{entry_id}_"
+    if not unique_id.startswith(prefix):
+        return None
+    rest = unique_id[len(prefix) :]
+    parts = rest.split("_", 1)
+    if len(parts) != 2 or not parts[0].isdigit():
+        return None
+    return parts[1]
+
+
+def is_cover_boost_unique_id(entry_id: str, unique_id: str) -> bool:
+    return entity_translation_key(entry_id, unique_id) in COVER_BOOST_KEYS
+
+
 def should_remove_entity(
     entry_id: str, unique_id: str, keep_indexes: set[int]
 ) -> bool:
@@ -113,4 +138,23 @@ def async_remove_orphan_pumps(
     for device_id in remove_device_ids:
         dev_reg.async_remove_device(device_id)
         removed += 1
+    return removed
+
+
+def async_remove_unused_cover_boost(hass: Any, entry: Any) -> int:
+    """Drop boost-volet entities when no cover sensor is configured."""
+    from .cover_boost import cover_options_from_entry
+
+    cover_entity, _invert = cover_options_from_entry(entry)
+    if cover_entity:
+        return 0
+
+    from homeassistant.helpers import entity_registry as er
+
+    removed = 0
+    ent_reg = er.async_get(hass)
+    for entity in list(er.async_entries_for_config_entry(ent_reg, entry.entry_id)):
+        if is_cover_boost_unique_id(entry.entry_id, entity.unique_id or ""):
+            ent_reg.async_remove(entity.entity_id)
+            removed += 1
     return removed

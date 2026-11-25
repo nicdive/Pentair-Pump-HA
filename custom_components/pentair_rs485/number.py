@@ -40,11 +40,12 @@ async def async_setup_entry(
         entities.append(
             PentairPumpGpmNumber(coordinator, pump.index, entry_id)
         )
-        entities.append(
-            PentairCoverBoostSpeedNumber(
-                coordinator, cover_boost, pump.index, entry_id
+        if cover_boost.cover_entity_id:
+            entities.append(
+                PentairCoverBoostSpeedNumber(
+                    coordinator, cover_boost, pump.index, entry_id
+                )
             )
-        )
         for program in range(1, 5):
             entities.append(
                 PentairProgramSpeedNumber(

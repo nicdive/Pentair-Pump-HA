@@ -4,6 +4,11 @@ Chaque version est archivée ici : `pentair_rs485_vX.Y.Z.zip`
 
 Le zip à la racine (`pentair_rs485_ha.zip`) = dernière version.
 
+## v0.8.3 — Boost volet + LCD arrêtée
+
+- Les switchs / numbers boost volet n’apparaissent que si un capteur volet est configuré
+- Carte LCD : OFF au lieu de RUNNING si la pompe est arrêtée
+
 ## v0.8.2 — Carte Lovelace sous HA 2026.11
 
 - Enregistre la carte comme ressource Lovelace (`/local/community/`) : plus de *Custom element not found* après Marketplace

@@ -18,7 +18,7 @@ from .const import DOMAIN
 _LOGGER = logging.getLogger(__name__)
 
 _CARD = "pentair-pump-display-card.js"
-_CARD_VERSION = "0.8.2"
+_CARD_VERSION = "0.8.3"
 _STATIC_URL = f"/{DOMAIN}/{_CARD}?v={_CARD_VERSION}"
 _LOCAL_URL = f"/local/community/{DOMAIN}/{_CARD}?v={_CARD_VERSION}"
 _PATHS_REGISTERED = False

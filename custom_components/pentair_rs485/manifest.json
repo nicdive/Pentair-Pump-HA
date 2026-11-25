@@ -19,6 +19,6 @@
   "requirements": [
     "pyserial>=3.5"
   ],
-  "version": "0.8.2",
+  "version": "0.8.3",
   "homeassistant": "2024.2.0"
 }

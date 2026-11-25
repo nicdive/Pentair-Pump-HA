@@ -36,11 +36,12 @@ async def async_setup_entry(
                 coordinator, cover_boost, pump.index, entry_id
             )
         )
-        entities.append(
-            PentairCoverBoostSwitch(
-                coordinator, cover_boost, pump.index, entry_id
+        if cover_boost.cover_entity_id:
+            entities.append(
+                PentairCoverBoostSwitch(
+                    coordinator, cover_boost, pump.index, entry_id
+                )
             )
-        )
     async_add_entities(entities)
 
 

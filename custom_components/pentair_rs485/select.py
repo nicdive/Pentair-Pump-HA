@@ -30,11 +30,12 @@ async def async_setup_entry(
         idx = pump.index
         entities.append(PentairCommandProfileSelect(coordinator, idx, entry_id))
         entities.append(PentairPumpModeSelect(coordinator, idx, entry_id))
-        entities.append(
-            PentairCoverBoostProfileSelect(
-                coordinator, cover_boost, idx, entry_id
+        if cover_boost.cover_entity_id:
+            entities.append(
+                PentairCoverBoostProfileSelect(
+                    coordinator, cover_boost, idx, entry_id
+                )
             )
-        )
     async_add_entities(entities)
 
 
